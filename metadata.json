@@ -1,0 +1,5 @@
+{
+  "name": "neo_backend",
+  "description": "A comprehensive dashboard for managing company timesheets and projects, featuring AI-powered project planning.",
+  "requestFramePermissions": []
+}
