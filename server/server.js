@@ -28,16 +28,17 @@ const renderStatusPage = async (req, res) => {
     "API_KEY (Gemini)": process.env.API_KEY ? "Set" : "Missing",
   };
 
-  // Check Database Connection with Timeout (2 seconds)
+  // Check Database Connection with Timeout (1.5 seconds)
   let dbStatus = "Unknown";
   let dbError = null;
   
-  const dbCheckPromise = db.sequelize.authenticate();
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error("Connection check timed out (Is DB host reachable?)")), 2000)
-  );
-
+  // We wrap the check in a try/catch to ensure rendering never fails
   try {
+    const dbCheckPromise = db.sequelize.authenticate();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Connection check timed out (Is DB host reachable?)")), 1500)
+    );
+
     await Promise.race([dbCheckPromise, timeoutPromise]);
     dbStatus = "Connected";
   } catch (err) {
@@ -132,13 +133,13 @@ const renderStatusPage = async (req, res) => {
   res.send(html);
 };
 
-// Routes
+// Routes - Serve Status Page on Root
 app.get('/', renderStatusPage);
 app.get('/log', renderStatusPage);
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Global Error:", err.stack);
   res.status(500).json({ 
     message: 'Internal Server Error', 
     error: config.NODE_ENV === 'development' ? err.message : undefined 
@@ -147,20 +148,27 @@ app.use((err, req, res, next) => {
 
 // Start Server Function
 const startServer = async () => {
-  // 1. Start Listening IMMEDIATELY
-  // This ensures the logs are visible even if DB fails
-  app.listen(config.PORT, () => {
-    console.log(`Server is running on port ${config.PORT}`);
-  });
-
-  // 2. Attempt DB Sync (Background Process)
   try {
-    console.log("Attempting database connection...");
-    await db.sequelize.sync({ force: false });
-    console.log("Synced database successfully.");
-    await db.seed();
+    // 1. Start Listening IMMEDIATELY
+    // This ensures the logs are visible even if DB fails
+    const port = config.PORT || 3000;
+    app.listen(port, () => {
+      console.log(`Server is running and listening on port ${port}`);
+    });
+
+    // 2. Attempt DB Sync (Background Process)
+    console.log("Attempting database connection in background...");
+    db.sequelize.sync({ force: false })
+      .then(() => {
+        console.log("Synced database successfully.");
+        return db.seed();
+      })
+      .catch((err) => {
+        console.error("Failed to sync database (Server still running in diagnostics mode): " + err.message);
+      });
+      
   } catch (err) {
-    console.error("Failed to sync database (Server still running in diagnostics mode): " + err.message);
+    console.error("Failed to start server:", err);
   }
 };
 
