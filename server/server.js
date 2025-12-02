@@ -202,18 +202,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Sync DB and Start Server
-db.sequelize.sync({ force: false }) // Set force: true to drop/recreate tables (dev only)
-  .then(() => {
+// Start Server Function
+const startServer = async () => {
+  // 1. Attempt DB Sync (Non-blocking for server start)
+  try {
+    await db.sequelize.sync({ force: false });
     console.log("Synced database.");
-    // Run seeder if needed
-    return db.seed();
-  })
-  .then(() => {
-    app.listen(config.PORT, () => {
-      console.log(`Server is running on port ${config.PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Failed to sync database: " + err.message);
+    await db.seed();
+  } catch (err) {
+    console.error("Failed to sync database (Diagnostics mode enabled): " + err.message);
+  }
+
+  // 2. Start Listening (Run even if DB fails so /log works)
+  app.listen(config.PORT, () => {
+    console.log(`Server is running on port ${config.PORT}`);
   });
+};
+
+startServer();
