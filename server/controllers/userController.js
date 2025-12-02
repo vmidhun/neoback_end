@@ -1,23 +1,31 @@
 
-const { users } = require('../data/store');
+const db = require('../models');
+const User = db.User;
 
-exports.getAllUsers = (req, res) => {
-  // Return safe user objects (no passwords)
-  const safeUsers = users.map(({ password, ...u }) => u);
-  res.status(200).json(safeUsers);
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] }
+    });
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-exports.getUserById = (req, res) => {
+exports.getUserById = async (req, res) => {
   const { id } = req.params;
-  const user = users.find(u => u.id === id);
+  try {
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ['password'] }
+    });
 
-  if (!user) {
-    return res.status(404).json({ error: "User not found." });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  // Role based access check logic could go here (e.g. can emp_1 see emp_2?)
-  // Assuming authorized via middleware for now.
-
-  const { password, ...safeUser } = user;
-  res.status(200).json(safeUser);
 };

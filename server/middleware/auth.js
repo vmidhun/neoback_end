@@ -1,9 +1,10 @@
 
 const config = require('../config');
-const { users } = require('../data/store');
+const db = require('../models');
+const User = db.User;
 
-// Middleware to verify authentication token (Mock Implementation for simulation)
-exports.verifyToken = (req, res, next) => {
+// Middleware to verify authentication token
+exports.verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   
   if (!authHeader) {
@@ -12,29 +13,27 @@ exports.verifyToken = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   
-  // In a real app, verify JWT signature here.
-  // For this mock, we assume the token is base64 encoded "userId:secret"
-  // OR for simplicity in testing, we accept just the userID as the token or a dummy string that maps to a user.
+  // Simulation: We treat the token as the User ID directly for the nut shell demo.
+  // In a real app, verify JWT here: jwt.verify(token, config.JWT_SECRET)
   
-  // Simulation: We will treat the token as the User ID directly for ease of testing the "nut shell".
-  // If token is "eyJ...", we'll assume it's valid for "emp_1" if it's the hardcoded demo token, 
-  // otherwise we try to look up a user by ID if the token matches an ID.
-  
-  let user = users.find(u => u.id === token);
-  
-  // Fallback for demo: if token is the hardcoded JWT string from doc, use emp_1
-  if (!user && token.startsWith("eyJ")) {
-      user = users.find(u => u.id === "emp_1");
-  }
+  try {
+    let user = await User.findByPk(token);
 
-  if (!user) {
-    // If not found, check if it's a "login" token simulation
-    // Allowing loose auth for demo purposes
-    return res.status(401).json({ error: "Unauthorized: Invalid token." });
-  }
+    // Fallback for demo convenience: if token is long JWT string, default to emp_1
+    if (!user && token.startsWith("eyJ")) {
+       user = await User.findByPk("emp_1");
+    }
 
-  req.user = user;
-  next();
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized: Invalid token." });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error("Auth Error:", err);
+    res.status(500).json({ error: "Internal Auth Error" });
+  }
 };
 
 exports.authorize = (allowedRoles) => {

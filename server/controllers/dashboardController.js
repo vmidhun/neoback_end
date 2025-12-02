@@ -1,93 +1,109 @@
 
-const store = require('../data/store');
+const db = require('../models');
+const { Op } = require('sequelize');
 
-// Helper to hydrate task with job/project/client details
-const hydrateTask = (task) => {
-  const job = store.jobs.find(j => j.id === task.jobId);
-  const project = job ? store.projects.find(p => p.id === job.projectId) : null;
-  const client = project ? store.clients.find(c => c.id === project.clientId) : null;
-
-  return {
-    ...task,
-    job: job ? {
-      id: job.id,
-      name: job.name,
-      project: project ? {
-        id: project.id,
-        name: project.name,
-        client: client
-      } : null
-    } : null
-  };
-};
-
-exports.getEmployeeDashboard = (req, res) => {
+exports.getEmployeeDashboard = async (req, res) => {
   const { userId } = req.params;
   
-  // Authorization check: User can only see their own dashboard unless Admin/HR
+  // Authorization check
   if (req.user.id !== userId && !['Admin', 'HR', 'Scrum Master'].includes(req.user.role)) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  // Mock Logic for dashboard data
-  const userLogsToday = store.timeLogs.filter(l => 
-    l.userId === userId && l.date.startsWith(new Date().toISOString().split('T')[0])
-  );
-  
-  const totalLogged = userLogsToday.reduce((sum, log) => sum + log.loggedHours, 0);
+  try {
+    // Get logs for today
+    const startOfDay = new Date();
+    startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23,59,59,999);
 
-  // Get tasks assigned to this user (simulated by checking if they have logged time or if we add an 'assignedTo' field later)
-  // For now, returning all tasks as potential "Daily Plan" items for the simulation
-  const userTasks = store.tasks.map(hydrateTask);
-  
-  const leave = store.leaves[userId] || { annual: 0, sick: 0, casual: 0 };
+    const userLogsToday = await db.TimeLog.findAll({
+      where: {
+        userId: userId,
+        date: { [Op.between]: [startOfDay, endOfDay] }
+      }
+    });
+    
+    const totalLogged = userLogsToday.reduce((sum, log) => sum + log.loggedHours, 0);
 
-  res.status(200).json({
-    checkInStatus: {
-      isCheckedIn: true,
-      checkInTime: new Date().toISOString() // Mock
-    },
-    dailyPlan: userTasks.map(t => ({
-        ...t,
-        loggedHours: store.timeLogs
-            .filter(l => l.taskId === t.id && l.userId === userId)
-            .reduce((acc, curr) => acc + curr.loggedHours, 0)
-    })),
-    totalLoggedHoursToday: totalLogged,
-    requiredDailyHours: 8,
-    leaveBalance: leave
-  });
-};
+    // Get all tasks to calculate potential work
+    const allTasks = await db.Task.findAll({
+      include: [{
+        model: db.Job,
+        include: [{
+          model: db.Project,
+          include: [db.Client]
+        }]
+      }]
+    });
 
-exports.getScrumMasterDashboard = (req, res) => {
-  const { teamId } = req.params;
-  const team = store.teams.find(t => t.id === teamId);
-  
-  if (!team) return res.status(404).json({ error: "Team not found" });
-
-  const teamMembers = store.users.filter(u => u.teamId === teamId);
-  
-  const membersStatus = teamMembers.map(m => {
-      const logs = store.timeLogs.filter(l => l.userId === m.id);
-      const total = logs.reduce((acc, l) => acc + l.loggedHours, 0);
+    // Hydrate plan with logs
+    const dailyPlan = await Promise.all(allTasks.map(async (task) => {
+      const logs = await db.TimeLog.sum('loggedHours', {
+        where: { taskId: task.id, userId: userId }
+      });
+      
       return {
-          id: m.id,
-          name: m.name,
-          avatarUrl: m.avatarUrl,
-          checkInTime: "2024-07-20T09:00:00Z", // Mock
-          totalLoggedHours: total,
-          requiredHours: 8,
-          progressPercentage: (total / 8) * 100
+        id: task.id,
+        name: task.name,
+        allocatedHours: task.allocatedHours,
+        status: task.status,
+        assignedBy: task.assignedBy,
+        job: task.job,
+        loggedHours: logs || 0
       };
-  });
+    }));
+    
+    const leave = await db.LeaveBalance.findByPk(userId);
 
-  res.status(200).json({
-    teamName: team.name,
-    teamMembersStatus: membersStatus
-  });
+    res.status(200).json({
+      checkInStatus: {
+        isCheckedIn: true,
+        checkInTime: new Date().toISOString()
+      },
+      dailyPlan: dailyPlan,
+      totalLoggedHoursToday: totalLogged,
+      requiredDailyHours: 8,
+      leaveBalance: leave || { annual: 0, sick: 0, casual: 0 }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
-exports.getReportsDashboard = (req, res) => {
+exports.getScrumMasterDashboard = async (req, res) => {
+  const { teamId } = req.params;
+  
+  try {
+    const team = await db.Team.findByPk(teamId);
+    if (!team) return res.status(404).json({ error: "Team not found" });
+
+    const teamMembers = await db.User.findAll({ where: { teamId } });
+    
+    const membersStatus = await Promise.all(teamMembers.map(async (m) => {
+        const total = await db.TimeLog.sum('loggedHours', { where: { userId: m.id } }) || 0;
+        return {
+            id: m.id,
+            name: m.name,
+            avatarUrl: m.avatarUrl,
+            checkInTime: "2024-07-20T09:00:00Z", // Mock
+            totalLoggedHours: total,
+            requiredHours: 8,
+            progressPercentage: Math.min((total / 8) * 100, 100)
+        };
+    }));
+
+    res.status(200).json({
+      teamName: team.name,
+      teamMembersStatus: membersStatus
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getReportsDashboard = async (req, res) => {
     // Mock aggregations
     res.status(200).json({
         projectHoursDistribution: [
@@ -104,13 +120,22 @@ exports.getReportsDashboard = (req, res) => {
       });
 };
 
-exports.getAdminDashboard = (req, res) => {
-    res.status(200).json({
-        moduleConfigurations: store.modules,
+exports.getAdminDashboard = async (req, res) => {
+    try {
+      const modules = await db.ModuleConfig.findAll();
+      const clientsCount = await db.Client.count();
+      const projectsCount = await db.Project.count();
+      const jobsCount = await db.Job.count();
+
+      res.status(200).json({
+        moduleConfigurations: modules,
         masterDataSummaries: {
-          clientsCount: store.clients.length,
-          projectsCount: store.projects.length,
-          jobsCount: store.jobs.length
+          clientsCount,
+          projectsCount,
+          jobsCount
         }
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
 };

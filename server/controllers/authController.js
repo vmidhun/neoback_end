@@ -1,32 +1,36 @@
 
-const { users } = require('../data/store');
+const db = require('../models');
+const User = db.User;
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
-  const user = users.find(u => u.email === email && u.password === password);
+  try {
+    const user = await User.findOne({ where: { email, password } });
 
-  if (!user) {
-    return res.status(401).json({ error: "Invalid email or password." });
-  }
-
-  // In a real app, sign a real JWT here.
-  // We return the User ID as the token for the mock middleware to consume.
-  const mockToken = user.id; 
-
-  res.status(200).json({
-    token: mockToken, 
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password." });
     }
-  });
+
+    // Returning User ID as mock token
+    const mockToken = user.id; 
+
+    res.status(200).json({
+      token: mockToken, 
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.getMe = (req, res) => {

@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config');
 const router = require('./routes/index');
+const db = require('./models');
 
 const app = express();
 
@@ -28,7 +29,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(config.PORT, () => {
-  console.log(`Server is running on port ${config.PORT}`);
-});
+// Sync DB and Start Server
+db.sequelize.sync({ force: false }) // Set force: true to drop/recreate tables (dev only)
+  .then(() => {
+    console.log("Synced database.");
+    // Run seeder if needed
+    return db.seed();
+  })
+  .then(() => {
+    app.listen(config.PORT, () => {
+      console.log(`Server is running on port ${config.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to sync database: " + err.message);
+  });
