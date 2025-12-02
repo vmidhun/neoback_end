@@ -1,4 +1,3 @@
-
 const { GoogleGenAI, Type } = require("@google/genai");
 const config = require('../config');
 

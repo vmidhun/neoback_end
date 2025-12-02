@@ -1,4 +1,3 @@
-
 const config = require('../config');
 const db = require('../models');
 const User = db.User;

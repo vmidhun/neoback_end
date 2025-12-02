@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
@@ -22,7 +21,7 @@ app.get('/', (req, res) => {
 
 // Status & Log Dashboard
 app.get('/log', async (req, res) => {
-  // Check Env Vars Status (checking process.env directly to see if provided)
+  // Check Env Vars Status
   const envChecks = {
     "NODE_ENV": process.env.NODE_ENV || "development (default)",
     "PORT": process.env.PORT || "3001 (default)",
@@ -62,7 +61,7 @@ app.get('/log', async (req, res) => {
           table { width: 100%; border-collapse: collapse; }
           th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #f0f0f0; }
           th { color: #666; font-weight: 500; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; }
-          .error-msg { background: #fff5f5; border-left: 4px solid #fc8181; padding: 12px; color: #c53030; margin-top: 10px; font-family: monospace; }
+          .error-msg { background: #fff5f5; border-left: 4px solid #fc8181; padding: 12px; color: #c53030; margin-top: 10px; font-family: monospace; word-break: break-all; }
         </style>
       </head>
       <body>
