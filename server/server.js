@@ -56,6 +56,15 @@ const seedHandler = async (req, res) => {
 app.post('/api/admin/seed', seedHandler);
 app.post('/admin/seed', seedHandler);
 
+app.get('/', (req, res) => {
+  res.json({
+    message: "NEO Company Management API",
+    status: "Running",
+    timestamp: new Date().toISOString(),
+    documentation: "/api/status"
+  });
+});
+
 // 5. API ROUTES
 // Mount on both /api and root to handle Vercel rewrite variations
 app.use('/api', apiRoutes);

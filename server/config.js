@@ -1,7 +1,7 @@
 
 require('dotenv').config();
 
-const DEFAULT_DB_NAME = 'neo_db';
+const DEFAULT_DB_NAME = 'neo_prod_db';
 // Updated with provided URI
 const FALLBACK_URI = `mongodb+srv://neo_db_user:5LmvZ367HjkpUWlc@cluster0.7jvi7wm.mongodb.net/${DEFAULT_DB_NAME}?retryWrites=true&w=majority`;
 
