@@ -11,7 +11,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const projectRoot = path.join(__dirname, '../');
-app.use(express.static(projectRoot));
+
+// Serve static files with explicit MIME type overrides for TypeScript/React files
+app.use(express.static(projectRoot, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 
 let db;
 let dbLoadError = null;
@@ -57,6 +65,7 @@ const getMaskedUri = (uri) => {
 };
 
 app.get('/api/status', async (req, res) => {
+  // Start DB connection in background if not already started
   ensureDb().catch(e => console.error("Async DB Init Failed:", e.message));
 
   let dbStatus = "Disconnected";
@@ -99,14 +108,17 @@ app.post('/api/admin/seed', async (req, res) => {
   try {
     await ensureDb();
     await db.seed();
-    res.json({ message: "Seed operation successfully triggered" });
+    res.json({ message: "Seed operation successfully completed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Route /api requests to the API router
 app.use('/api', async (req, res, next) => {
+  // Status and Seed bypass the blocking DB check (they report their own errors)
   if (req.path === '/status' || req.path === '/admin/seed') return next();
+  
   try {
     await ensureDb();
     next();
@@ -119,7 +131,12 @@ app.use('/api', async (req, res, next) => {
   }
 }, require('./routes/index'));
 
+// SPA Fallback: Serve index.html for any non-API routes
 app.get('*', (req, res) => {
+  // If it's a request for a static asset that wasn't found, don't return index.html
+  if (req.path.includes('.')) {
+    return res.status(404).send('Not found');
+  }
   res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
