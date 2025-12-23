@@ -1,24 +1,37 @@
+
 const Sequelize = require('sequelize');
 const config = require('../config');
 
-// Initialize Sequelize
-const sequelize = new Sequelize(
-  config.DB.NAME,
-  config.DB.USER,
-  config.DB.PASSWORD,
-  {
-    host: config.DB.HOST,
-    port: config.DB.PORT,
-    dialect: config.DB.DIALECT,
-    logging: false, // Set to console.log to see SQL queries
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
+let sequelize;
+
+// Configuration for Sequelize
+const dbConfig = {
+  host: config.DB.HOST,
+  port: config.DB.PORT,
+  dialect: config.DB.DIALECT,
+  logging: false,
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
   }
-);
+};
+
+// SQLite specific config
+if (config.DB.DIALECT === 'sqlite') {
+  dbConfig.storage = config.DB.STORAGE;
+  // SQLite doesn't need host/user/password, but we initialize nicely
+  sequelize = new Sequelize(dbConfig);
+} else {
+  // MySQL/Postgres initialization
+  sequelize = new Sequelize(
+    config.DB.NAME,
+    config.DB.USER,
+    config.DB.PASSWORD,
+    dbConfig
+  );
+}
 
 const db = {};
 
