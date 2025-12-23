@@ -2,12 +2,11 @@
 require('dotenv').config();
 
 const DEFAULT_DB_NAME = 'neo_db';
-// Hardcoded fallback for easy setup, but should be overridden by process.env.MONGODB_URI in Vercel
+// Updated with provided URI
 const FALLBACK_URI = `mongodb+srv://neo_db_user:5LmvZ367HjkpUWlc@cluster0.7jvi7wm.mongodb.net/${DEFAULT_DB_NAME}?retryWrites=true&w=majority`;
 
 const getMongoUri = () => {
   let uri = process.env.MONGODB_URI || FALLBACK_URI;
-  // Simple check to ensure the URI at least starts with mongodb
   if (!uri.startsWith('mongodb')) {
     console.warn("Invalid MONGODB_URI detected, using fallback.");
     return FALLBACK_URI;
