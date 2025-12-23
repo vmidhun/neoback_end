@@ -2,40 +2,42 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 
-/**
- * Connects to MongoDB Atlas.
- * Uses cached connection state to avoid redundant attempts in serverless environments.
- */
+// Use a global variable to cache the connection promise
+let cachedConnection = null;
+
 const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  // If a connection is already in progress, wait for it
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
   try {
-    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
-    if (mongoose.connection.readyState === 1) {
-      return mongoose.connection;
-    }
-
-    if (mongoose.connection.readyState === 2) {
-      console.log("Database connection is already in progress...");
-      return;
-    }
-
     const uri = config.MONGODB_URI;
-    console.log(`Connecting to MongoDB Atlas (Database: ${config.DB.NAME})...`);
+    console.log(`Connecting to MongoDB Atlas (DB: ${config.DB.NAME})...`);
     
-    await mongoose.connect(uri, {
+    // Cache the promise so concurrent requests don't try to open multiple connections
+    cachedConnection = mongoose.connect(uri, {
       dbName: config.DB.NAME,
       serverSelectionTimeoutMS: 15000, 
       connectTimeoutMS: 15000,
-      heartbeatFrequencyMS: 10000,
     });
     
+    await cachedConnection;
     console.log("Successfully connected to MongoDB Atlas");
     return mongoose.connection;
   } catch (err) {
+    cachedConnection = null; // Reset cache on error so we can retry
     console.error("--- MONGODB CONNECTION ERROR ---");
     console.error("Error Message:", err.message);
     throw err;
   }
 };
+
+// --- Schemas ---
 
 const UserSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -122,6 +124,7 @@ const AttendanceSchema = new mongoose.Schema({
   status: { type: String, enum: ['On Time', 'Late', 'Half Day', 'Absent'], default: 'On Time' }
 }, { timestamps: true, collection: 'attendance' });
 
+// --- Register Models ---
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Team = mongoose.models.Team || mongoose.model('Team', TeamSchema);
 const Client = mongoose.models.Client || mongoose.model('Client', ClientSchema);
@@ -154,13 +157,11 @@ const db = {
 
 db.seed = async () => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      await connectDB();
-    }
+    await connectDB();
     const userCount = await User.countDocuments();
     if (userCount > 0) return;
 
-    console.log("Seeding initial data...");
+    console.log("Seeding database...");
     await Team.findOneAndUpdate({ _id: "team_alpha" }, { name: "Alpha Squad" }, { upsert: true });
 
     const userData = [
@@ -186,7 +187,7 @@ db.seed = async () => {
     }, { upsert: true });
 
     await ModuleConfig.findOneAndUpdate({ _id: "Time & Attendance" }, { enabled: true }, { upsert: true });
-    console.log("Seed finished successfully.");
+    console.log("Database seeded successfully.");
   } catch (error) {
     console.error("Critical Seeding error:", error);
   }
