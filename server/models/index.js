@@ -2,7 +2,6 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 
-// Use a global variable to cache the connection promise
 let cachedConnection = null;
 
 const connectDB = async () => {
@@ -10,35 +9,31 @@ const connectDB = async () => {
     return mongoose.connection;
   }
 
-  // If a connection is already in progress, wait for it
   if (cachedConnection) {
     return cachedConnection;
   }
 
   try {
     const uri = config.MONGODB_URI;
-    console.log(`Connecting to MongoDB Atlas (DB: ${config.DB.NAME})...`);
+    console.log(`Connecting to MongoDB Atlas...`);
     
-    // Cache the promise so concurrent requests don't try to open multiple connections
     cachedConnection = mongoose.connect(uri, {
       dbName: config.DB.NAME,
-      serverSelectionTimeoutMS: 15000, 
-      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 8000, // Reduced for Vercel (10s limit)
+      connectTimeoutMS: 8000,
     });
     
     await cachedConnection;
     console.log("Successfully connected to MongoDB Atlas");
     return mongoose.connection;
   } catch (err) {
-    cachedConnection = null; // Reset cache on error so we can retry
-    console.error("--- MONGODB CONNECTION ERROR ---");
-    console.error("Error Message:", err.message);
+    cachedConnection = null;
+    console.error("MongoDB Connection Error:", err.message);
     throw err;
   }
 };
 
 // --- Schemas ---
-
 const UserSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true },
@@ -90,14 +85,14 @@ const TimeLogSchema = new mongoose.Schema({
 }, { timestamps: true, collection: 'timelogs' });
 
 const LeaveBalanceSchema = new mongoose.Schema({
-  _id: { type: String, required: true }, // userId
+  _id: { type: String, required: true },
   annual: { type: Number, default: 0 },
   sick: { type: Number, default: 0 },
   casual: { type: Number, default: 0 }
 }, { timestamps: true, collection: 'leave_balances' });
 
 const ModuleConfigSchema = new mongoose.Schema({
-  _id: { type: String, required: true }, // name
+  _id: { type: String, required: true },
   enabled: { type: Boolean, default: true }
 }, { timestamps: true, collection: 'module_configs' });
 
@@ -157,7 +152,6 @@ const db = {
 
 db.seed = async () => {
   try {
-    await connectDB();
     const userCount = await User.countDocuments();
     if (userCount > 0) return;
 
@@ -187,9 +181,8 @@ db.seed = async () => {
     }, { upsert: true });
 
     await ModuleConfig.findOneAndUpdate({ _id: "Time & Attendance" }, { enabled: true }, { upsert: true });
-    console.log("Database seeded successfully.");
   } catch (error) {
-    console.error("Critical Seeding error:", error);
+    console.error("Seeding error:", error);
   }
 };
 

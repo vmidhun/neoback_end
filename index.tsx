@@ -14,12 +14,15 @@ const ServerStatusDashboard = () => {
   const fetchStatus = async () => {
     try {
       const res = await fetch(`${API_BASE}/status`);
-      if (!res.ok) throw new Error('Backend unreachable');
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Server error');
+      }
       setStatus(data);
       setError(null);
     } catch (err: any) {
-      setError(err.message);
+      // Don't overwrite status if we have previous data, just show the error
+      setError(err.message === 'Failed to fetch' ? 'Backend unreachable' : err.message);
     } finally {
       setLoading(false);
     }
@@ -96,7 +99,7 @@ const ServerStatusDashboard = () => {
               <div className="text-3xl font-mono font-bold text-white mb-2">{status?.memoryUsage || '0.00'}<span className="text-lg text-slate-500 ml-1">mb</span></div>
               <div className="text-sm text-slate-400 flex justify-between">
                 <span>Node Heap</span>
-                <span className="text-slate-500 font-mono">Uptime: {status?.uptime}s</span>
+                <span className="text-slate-500 font-mono">Uptime: {status?.uptime || 0}s</span>
               </div>
             </div>
             
@@ -167,7 +170,7 @@ const ServerStatusDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                   <p className="text-white font-bold mb-2 uppercase text-[10px]">Step 1: Whitelist Vercel</p>
-                  <p className="text-slate-400 mb-2 leading-tight">Must allow access from everywhere.</p>
+                  <p className="text-slate-400 mb-2 leading-tight">Must allow access from everywhere in Atlas Console.</p>
                   <code className="bg-slate-950 px-2 py-1 rounded text-blue-400">0.0.0.0/0</code>
                 </div>
                 <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
