@@ -25,3 +25,33 @@ exports.getUserById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.createUser = async (req, res) => {
+  try {
+    const newUser = await User.create({
+      _id: `emp_${Date.now()}`,
+      ...req.body
+    });
+    res.status(201).json(newUser);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

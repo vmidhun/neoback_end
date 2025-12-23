@@ -41,7 +41,10 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['Admin', 'HR', 'Employee', 'Scrum Master'], default: 'Employee' },
   avatarUrl: { type: String },
-  teamId: { type: String, ref: 'Team' }
+  teamId: { type: String, ref: 'Team' },
+  designation: { type: String },
+  hierarchyLevel: { type: Number, default: 3 }, // 1: Director, 2: Lead/Manager, 3: Senior/Mid/Exec
+  reportingManagerId: { type: String, ref: 'User' }
 }, { timestamps: true, collection: 'users' });
 
 const TeamSchema = new mongoose.Schema({
@@ -166,12 +169,28 @@ db.seed = async (force = false) => {
     await Team.findOneAndUpdate({ _id: "team_alpha" }, { name: "Alpha Squad" }, { upsert: true });
 
     // Users
-    const userData = [
-      { _id: "emp_1", name: "Alex Doe", email: "alex@neo.com", password: "password", role: "Employee", avatarUrl: "https://i.pravatar.cc/150?u=emp_1", teamId: "team_alpha" },
-      { _id: "emp_2", name: "Liam Gallagher", email: "liam@neo.com", password: "password", role: "Scrum Master", avatarUrl: "https://i.pravatar.cc/150?u=emp_2", teamId: "team_alpha" },
-      { _id: "admin_1", name: "Sarah Connor", email: "admin@neo.com", password: "admin", role: "Admin", avatarUrl: "https://i.pravatar.cc/150?u=admin_1" },
-      { _id: "hr_1", name: "Priya Sharma", email: "hr@neo.com", password: "hr", role: "HR", avatarUrl: "https://i.pravatar.cc/150?u=hr_1" }
-    ];
+    // Users
+    let userData = [];
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const seedPath = path.join(__dirname, '../seed_data/users_seed.json');
+      if (fs.existsSync(seedPath)) {
+        console.log("Loading users from seed file:", seedPath);
+        userData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+      } else {
+        console.log("Seed file not found, skipping user update.");
+      }
+    } catch (e) {
+      console.error("Error reading seed file:", e);
+    }
+
+    if (userData.length === 0) {
+      // Fallback or empty
+      userData = [
+        { _id: "sam", name: "Sam Thomas", email: "sam@neointeraction.com", password: "password", role: "Admin", teamId: "team_alpha" }
+      ];
+    }
     for (const u of userData) await User.findOneAndUpdate({ _id: u._id }, u, { upsert: true });
 
     // Leave Balances
@@ -192,23 +211,23 @@ db.seed = async (force = false) => {
     
     // Tasks
     const tasksData = [
-        { _id: "task_1", name: "Implement user authentication", jobId: "job_1", allocatedHours: 8, status: "To Do", assignedBy: "Liam Gallagher" },
-        { _id: "task_2", name: "Design dashboard wireframes", jobId: "job_2", allocatedHours: 6, status: "In Progress", assignedBy: "Liam Gallagher" },
-        { _id: "task_3", name: "Schema Migration", jobId: "job_3", allocatedHours: 4, status: "Completed", assignedBy: "Liam Gallagher" }
+      { _id: "task_1", name: "Implement user authentication", jobId: "job_1", allocatedHours: 8, status: "To Do", assignedBy: "Vanessa Lobo" },
+      { _id: "task_2", name: "Design dashboard wireframes", jobId: "job_2", allocatedHours: 6, status: "In Progress", assignedBy: "Vanessa Lobo" },
+      { _id: "task_3", name: "Schema Migration", jobId: "job_3", allocatedHours: 4, status: "Completed", assignedBy: "Vanessa Lobo" }
     ];
     for (const t of tasksData) await Task.findOneAndUpdate({ _id: t._id }, t, { upsert: true });
 
     // Time Logs
-    await TimeLog.findOneAndUpdate({ _id: "log_1" }, { taskId: "task_1", userId: "emp_1", loggedHours: 2.5, notes: "Initial setup", date: new Date() }, { upsert: true });
+    await TimeLog.findOneAndUpdate({ _id: "log_1" }, { taskId: "task_1", userId: "shameer", loggedHours: 2.5, notes: "Initial setup", date: new Date() }, { upsert: true });
 
     // Config
     const configs = ["Time & Attendance", "Leave Management", "Payroll Integration"];
     for (const c of configs) await ModuleConfig.findOneAndUpdate({ _id: c }, { enabled: c !== "Payroll Integration" }, { upsert: true });
 
     // Announcements & Holidays (for the monitor counts)
-    await Announcement.findOneAndUpdate({ _id: "ann_1" }, { title: "New Policy", content: "Work from home", authorId: "admin_1" }, { upsert: true });
+    await Announcement.findOneAndUpdate({ _id: "ann_1" }, { title: "New Policy", content: "Work from home", authorId: "sam" }, { upsert: true });
     await Holiday.findOneAndUpdate({ _id: "hol_1" }, { name: "New Year", date: new Date("2024-01-01") }, { upsert: true });
-    await Attendance.findOneAndUpdate({ _id: "att_1" }, { userId: "emp_1", checkIn: new Date() }, { upsert: true });
+    await Attendance.findOneAndUpdate({ _id: "att_1" }, { userId: "shameer", checkIn: new Date() }, { upsert: true });
 
     console.log("Database seeded successfully.");
   } catch (error) {

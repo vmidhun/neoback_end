@@ -16,8 +16,11 @@ router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
 
 // --- Users ---
-router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Scrum Master']), userController.getAllUsers);
+router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Scrum Master', 'Employee']), userController.getAllUsers);
 router.get('/users/:id', verifyToken, userController.getUserById);
+router.post('/users', verifyToken, authorize(['Admin']), userController.createUser);
+router.put('/users/:id', verifyToken, authorize(['Admin']), userController.updateUser);
+router.delete('/users/:id', verifyToken, authorize(['Admin']), userController.deleteUser);
 
 // --- Dashboards ---
 router.get('/dashboards/employee/:userId', verifyToken, dashboardController.getEmployeeDashboard);
@@ -30,6 +33,10 @@ router.get('/tasks', verifyToken, taskController.getTasks);
 router.get('/tasks/:id', verifyToken, taskController.getTaskById);
 router.put('/tasks/:id/status', verifyToken, taskController.updateTaskStatus);
 router.post('/tasks/suggest-plan', verifyToken, taskController.suggestPlan);
+// Admin Task Management
+router.post('/tasks', verifyToken, authorize(['Admin', 'Scrum Master']), adminController.createTask);
+router.put('/tasks/:id', verifyToken, authorize(['Admin', 'Scrum Master']), adminController.updateTask);
+router.delete('/tasks/:id', verifyToken, authorize(['Admin', 'Scrum Master']), adminController.deleteTask);
 
 // --- TimeLogs ---
 router.get('/timelogs', verifyToken, timeLogController.getTimeLogs);
@@ -41,8 +48,15 @@ router.post('/clients', verifyToken, authorize(['Admin']), adminController.creat
 router.put('/clients/:id', verifyToken, authorize(['Admin']), adminController.updateClient);
 router.delete('/clients/:id', verifyToken, authorize(['Admin']), adminController.deleteClient);
 
-router.get('/projects', verifyToken, authorize(['Admin']), adminController.getProjects);
+router.get('/projects', verifyToken, authorize(['Admin', 'Scrum Master', 'HR', 'Employee']), adminController.getProjects);
 router.post('/projects', verifyToken, authorize(['Admin']), adminController.createProject);
+router.put('/projects/:id', verifyToken, authorize(['Admin']), adminController.updateProject);
+router.delete('/projects/:id', verifyToken, authorize(['Admin']), adminController.deleteProject);
+
+router.get('/teams', verifyToken, authorize(['Admin', 'Scrum Master', 'HR', 'Employee']), adminController.getTeams);
+router.post('/teams', verifyToken, authorize(['Admin']), adminController.createTeam);
+router.put('/teams/:id', verifyToken, authorize(['Admin']), adminController.updateTeam);
+router.delete('/teams/:id', verifyToken, authorize(['Admin']), adminController.deleteTeam);
 
 router.get('/jobs', verifyToken, authorize(['Admin']), adminController.getJobs);
 router.post('/jobs', verifyToken, authorize(['Admin']), adminController.createJob);

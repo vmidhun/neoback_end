@@ -40,6 +40,18 @@ exports.createProject = async (req, res) => {
       res.status(201).json(newProject);
     } catch(err) { res.status(500).json({error: err.message}); }
 };
+exports.updateProject = async (req, res) => {
+  try {
+    const project = await db.Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(project);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+exports.deleteProject = async (req, res) => {
+  try {
+    await db.Project.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
 
 // Jobs
 exports.getJobs = async (req, res) => {
@@ -70,4 +82,48 @@ exports.updateModule = async (req, res) => {
       await mod.save();
       res.json({ name: mod._id, enabled: mod.enabled });
     } catch(err) { res.status(500).json({error: err.message}); }
+};
+
+// Teams
+exports.getTeams = async (req, res) => {
+  const teams = await db.Team.find();
+  res.json(teams);
+};
+exports.createTeam = async (req, res) => {
+  try {
+    const newTeam = await db.Team.create({ _id: `team_${Date.now()}`, ...req.body });
+    res.status(201).json(newTeam);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+exports.updateTeam = async (req, res) => {
+  try {
+    const team = await db.Team.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(team);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+exports.deleteTeam = async (req, res) => {
+  try {
+    await db.Team.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// Tasks (Admin Overrides)
+exports.createTask = async (req, res) => {
+  try {
+    const newTask = await db.Task.create({ _id: `task_${Date.now()}`, ...req.body });
+    res.status(201).json(newTask);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+exports.updateTask = async (req, res) => {
+  try {
+    const task = await db.Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(task);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+exports.deleteTask = async (req, res) => {
+  try {
+    await db.Task.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
