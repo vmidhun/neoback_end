@@ -19,7 +19,16 @@ app.use((req, res, next) => {
 });
 
 // 2. DATABASE CONNECTION
-connectDB().catch(err => console.error("Startup DB Connection Error:", err));
+// 2. DATABASE CONNECTION MIDDLEWARE
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection failed:", err);
+    res.status(503).json({ error: "Service Unavailable", message: "Database connection failed" });
+  }
+});
 
 // 3. HEALTH & DIAGNOSTICS
 // Handle health check on both /status and /api/status for robustness
