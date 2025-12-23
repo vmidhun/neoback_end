@@ -2,17 +2,22 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
+const os = require('os');
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all for dev shell connectivity
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Initialization with Error Handling ---
 let db;
 let dbLoadError = null;
+const startTime = Date.now();
 
 try {
   db = require('./models');
@@ -21,7 +26,44 @@ try {
   dbLoadError = err;
 }
 
-// Routes - Basic check if DB is ready
+// Routes
+// Dedicated Status Endpoint for the Frontend Dashboard
+app.get('/api/status', async (req, res) => {
+  let dbStatus = "Disconnected";
+  let counts = {};
+  
+  if (db && db.mongoose && db.mongoose.connection.readyState === 1) {
+    dbStatus = "Connected";
+    try {
+      counts = {
+        users: await db.User.countDocuments(),
+        projects: await db.Project.countDocuments(),
+        tasks: await db.Task.countDocuments(),
+        announcements: await db.Announcement.countDocuments(),
+        holidays: await db.Holiday.countDocuments(),
+        attendance: await db.Attendance.countDocuments()
+      };
+    } catch (e) {
+      console.error("Error fetching counts:", e.message);
+    }
+  } else if (db && db.mongoose) {
+    const state = db.mongoose.connection.readyState;
+    const states = { 0: 'Disconnected', 1: 'Connected', 2: 'Connecting', 3: 'Disconnecting' };
+    dbStatus = states[state] || 'Unknown';
+  }
+
+  res.json({
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
+    dbStatus,
+    dbName: config.DB.NAME,
+    counts,
+    nodeVersion: process.version,
+    platform: process.platform,
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/api', (req, res, next) => {
   if (dbLoadError) {
     return res.status(503).json({
@@ -33,52 +75,11 @@ app.use('/api', (req, res, next) => {
   next();
 }, require('./routes/index'));
 
-// Log/Status Rendering
-const renderStatusPage = async (req, res) => {
-  let dbStatus = "Disconnected";
-  let dbError = dbLoadError ? dbLoadError.message : null;
-
-  if (db && db.mongoose) {
-    const state = db.mongoose.connection.readyState;
-    const states = { 0: 'Disconnected', 1: 'Connected', 2: 'Connecting', 3: 'Disconnecting' };
-    dbStatus = states[state] || 'Unknown';
-  }
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>NEO Server Status (MongoDB)</title>
-        <style>
-          body { font-family: sans-serif; padding: 20px; background: #f4f6f8; }
-          .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          .ok { color: green; font-weight: bold; }
-          .fail { color: red; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <h1>NEO Backend Status</h1>
-          <p>Database: <span class="${dbStatus === 'Connected' ? 'ok' : 'fail'}">${dbStatus}</span></p>
-          ${dbError ? `<p style="color:red">Error: ${dbError}</p>` : ''}
-          <hr/>
-          <p>Environment: <code>${config.NODE_ENV}</code></p>
-          <p>Port: <code>${config.PORT}</code></p>
-        </div>
-      </body>
-    </html>
-  `;
-  res.send(html);
-};
-
-app.get('/', renderStatusPage);
-app.get('/log', renderStatusPage);
-
 // Start Server
 const startServer = async () => {
   const port = config.PORT || 3000;
   app.listen(port, async () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Backend server running on port ${port}`);
     if (db && !dbLoadError) {
       try {
         await db.connectDB();

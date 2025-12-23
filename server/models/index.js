@@ -78,6 +78,31 @@ const ModuleConfigSchema = new mongoose.Schema({
   enabled: { type: Boolean, default: true }
 }, { timestamps: true });
 
+// --- NEW RELEVANT TABLES ---
+
+const AnnouncementSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  authorId: { type: String, ref: 'User' },
+  priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' }
+}, { timestamps: true });
+
+const HolidaySchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  name: { type: String, required: true },
+  date: { type: Date, required: true },
+  description: { type: String }
+}, { timestamps: true });
+
+const AttendanceSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  userId: { type: String, ref: 'User', required: true },
+  checkIn: { type: Date, required: true },
+  checkOut: { type: Date },
+  status: { type: String, enum: ['On Time', 'Late', 'Half Day', 'Absent'], default: 'On Time' }
+}, { timestamps: true });
+
 // --- Register Models ---
 const User = mongoose.model('User', UserSchema);
 const Team = mongoose.model('Team', TeamSchema);
@@ -88,6 +113,9 @@ const Task = mongoose.model('Task', TaskSchema);
 const TimeLog = mongoose.model('TimeLog', TimeLogSchema);
 const LeaveBalance = mongoose.model('LeaveBalance', LeaveBalanceSchema);
 const ModuleConfig = mongoose.model('ModuleConfig', ModuleConfigSchema);
+const Announcement = mongoose.model('Announcement', AnnouncementSchema);
+const Holiday = mongoose.model('Holiday', HolidaySchema);
+const Attendance = mongoose.model('Attendance', AttendanceSchema);
 
 const db = {
   mongoose,
@@ -100,14 +128,17 @@ const db = {
   Task,
   TimeLog,
   LeaveBalance,
-  ModuleConfig
+  ModuleConfig,
+  Announcement,
+  Holiday,
+  Attendance
 };
 
 // --- Seeder Function ---
 db.seed = async () => {
   try {
-    const count = await User.countDocuments();
-    if (count > 0) return;
+    const userCount = await User.countDocuments();
+    if (userCount > 0) return;
 
     console.log("Seeding MongoDB with initial data...");
 
@@ -159,6 +190,20 @@ db.seed = async () => {
       { _id: "Time & Attendance", enabled: true },
       { _id: "Leave Management", enabled: true },
       { _id: "Payroll Integration", enabled: false }
+    ]);
+
+    await Announcement.insertMany([
+      { _id: "ann_1", title: "Quarterly Performance Review", content: "Reviews will start next week.", authorId: "admin_1", priority: "High" },
+      { _id: "ann_2", title: "New Coffee Machine!", content: "Check out the breakroom.", authorId: "hr_1", priority: "Low" }
+    ]);
+
+    await Holiday.insertMany([
+      { _id: "hol_1", name: "New Year's Day", date: new Date("2025-01-01"), description: "Public holiday" },
+      { _id: "hol_2", name: "Independence Day", date: new Date("2024-07-04"), description: "National holiday" }
+    ]);
+
+    await Attendance.insertMany([
+      { _id: "att_1", userId: "emp_1", checkIn: new Date(), status: "On Time" }
     ]);
 
     console.log("Seeding complete.");
