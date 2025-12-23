@@ -1,22 +1,24 @@
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const config = require('./config');
 const os = require('os');
 
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: '*', // Allow all for dev shell connectivity
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+app.use(cors()); // Still keep for local dev flexibility
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the current directory (project root)
+app.use(express.static(path.join(__dirname, '../')));
 
 // --- Initialization with Error Handling ---
 let db;
 let dbLoadError = null;
+let dbConnectionError = null;
 const startTime = Date.now();
 
 try {
@@ -26,7 +28,6 @@ try {
   dbLoadError = err;
 }
 
-// Routes
 // Dedicated Status Endpoint for the Frontend Dashboard
 app.get('/api/status', async (req, res) => {
   let dbStatus = "Disconnected";
@@ -34,6 +35,7 @@ app.get('/api/status', async (req, res) => {
   
   if (db && db.mongoose && db.mongoose.connection.readyState === 1) {
     dbStatus = "Connected";
+    dbConnectionError = null; // Clear error on success
     try {
       counts = {
         users: await db.User.countDocuments(),
@@ -57,6 +59,7 @@ app.get('/api/status', async (req, res) => {
     memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
     dbStatus,
     dbName: config.DB.NAME,
+    dbError: dbConnectionError ? dbConnectionError.message : (dbLoadError ? dbLoadError.message : null),
     counts,
     nodeVersion: process.version,
     platform: process.platform,
@@ -64,6 +67,7 @@ app.get('/api/status', async (req, res) => {
   });
 });
 
+// API Routes
 app.use('/api', (req, res, next) => {
   if (dbLoadError) {
     return res.status(503).json({
@@ -75,16 +79,22 @@ app.use('/api', (req, res, next) => {
   next();
 }, require('./routes/index'));
 
+// Catch-all route to serve the frontend (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../index.html'));
+});
+
 // Start Server
 const startServer = async () => {
   const port = config.PORT || 3000;
   app.listen(port, async () => {
-    console.log(`Backend server running on port ${port}`);
+    console.log(`Unified Server running on port ${port}`);
     if (db && !dbLoadError) {
       try {
         await db.connectDB();
         await db.seed();
       } catch (err) {
+        dbConnectionError = err;
         console.error("Failed to connect to MongoDB:", err.message);
       }
     }
