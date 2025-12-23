@@ -8,12 +8,14 @@ const os = require('os');
 const app = express();
 
 // Middleware
-app.use(cors()); // Still keep for local dev flexibility
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the current directory (project root)
-app.use(express.static(path.join(__dirname, '../')));
+// Serve static files from the project root
+// In Vercel, we need to ensure path resolution is reliable
+const projectRoot = path.join(__dirname, '../');
+app.use(express.static(projectRoot));
 
 // --- Initialization with Error Handling ---
 let db;
@@ -35,7 +37,7 @@ app.get('/api/status', async (req, res) => {
   
   if (db && db.mongoose && db.mongoose.connection.readyState === 1) {
     dbStatus = "Connected";
-    dbConnectionError = null; // Clear error on success
+    dbConnectionError = null;
     try {
       counts = {
         users: await db.User.countDocuments(),
@@ -81,11 +83,11 @@ app.use('/api', (req, res, next) => {
 
 // Catch-all route to serve the frontend (SPA support)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../index.html'));
+  res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
-// Start Server
-const startServer = async () => {
+// Start Server (Only start if not being required by a serverless runner like Vercel)
+if (require.main === module) {
   const port = config.PORT || 3000;
   app.listen(port, async () => {
     console.log(`Unified Server running on port ${port}`);
@@ -99,6 +101,15 @@ const startServer = async () => {
       }
     }
   });
-};
+} else {
+    // We are in a serverless environment
+    if (db && !dbLoadError) {
+        db.connectDB().catch(err => {
+            dbConnectionError = err;
+            console.error("Vercel DB Connect Error:", err.message);
+        });
+    }
+}
 
-startServer();
+// Export app for Vercel
+module.exports = app;
