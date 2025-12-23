@@ -2,28 +2,40 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 
+/**
+ * Connects to MongoDB Atlas.
+ * Uses cached connection state to avoid redundant attempts in serverless environments.
+ */
 const connectDB = async () => {
   try {
-    if (mongoose.connection.readyState === 1) return;
-    
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    if (mongoose.connection.readyState === 1) {
+      return mongoose.connection;
+    }
+
+    if (mongoose.connection.readyState === 2) {
+      console.log("Database connection is already in progress...");
+      return;
+    }
+
     const uri = config.MONGODB_URI;
-    console.log("Attempting to connect to MongoDB...");
+    console.log(`Connecting to MongoDB Atlas (Database: ${config.DB.NAME})...`);
     
     await mongoose.connect(uri, {
       dbName: config.DB.NAME,
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000, 
+      connectTimeoutMS: 15000,
+      heartbeatFrequencyMS: 10000,
     });
     
     console.log("Successfully connected to MongoDB Atlas");
+    return mongoose.connection;
   } catch (err) {
     console.error("--- MONGODB CONNECTION ERROR ---");
-    console.error("Message:", err.message);
+    console.error("Error Message:", err.message);
     throw err;
   }
 };
-
-// --- Define Schemas ---
 
 const UserSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -33,29 +45,29 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['Admin', 'HR', 'Employee', 'Scrum Master'], default: 'Employee' },
   avatarUrl: { type: String },
   teamId: { type: String, ref: 'Team' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 
 const TeamSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'teams' });
 
 const ClientSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'clients' });
 
 const ProjectSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true },
   clientId: { type: String, ref: 'Client', required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'projects' });
 
 const JobSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true },
   projectId: { type: String, ref: 'Project', required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'jobs' });
 
 const TaskSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -64,7 +76,7 @@ const TaskSchema = new mongoose.Schema({
   status: { type: String, enum: ['To Do', 'In Progress', 'Completed'], default: 'To Do' },
   assignedBy: { type: String },
   jobId: { type: String, ref: 'Job', required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'tasks' });
 
 const TimeLogSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -73,19 +85,19 @@ const TimeLogSchema = new mongoose.Schema({
   loggedHours: { type: Number, required: true },
   notes: { type: String },
   date: { type: Date, default: Date.now }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'timelogs' });
 
 const LeaveBalanceSchema = new mongoose.Schema({
   _id: { type: String, required: true }, // userId
   annual: { type: Number, default: 0 },
   sick: { type: Number, default: 0 },
   casual: { type: Number, default: 0 }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'leave_balances' });
 
 const ModuleConfigSchema = new mongoose.Schema({
   _id: { type: String, required: true }, // name
   enabled: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'module_configs' });
 
 const AnnouncementSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -93,14 +105,14 @@ const AnnouncementSchema = new mongoose.Schema({
   content: { type: String, required: true },
   authorId: { type: String, ref: 'User' },
   priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'announcements' });
 
 const HolidaySchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true },
   date: { type: Date, required: true },
   description: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'holidays' });
 
 const AttendanceSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -108,9 +120,8 @@ const AttendanceSchema = new mongoose.Schema({
   checkIn: { type: Date, required: true },
   checkOut: { type: Date },
   status: { type: String, enum: ['On Time', 'Late', 'Half Day', 'Absent'], default: 'On Time' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'attendance' });
 
-// --- Register Models with Overwrite Protection ---
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Team = mongoose.models.Team || mongoose.model('Team', TeamSchema);
 const Client = mongoose.models.Client || mongoose.model('Client', ClientSchema);
@@ -143,10 +154,13 @@ const db = {
 
 db.seed = async () => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
     const userCount = await User.countDocuments();
     if (userCount > 0) return;
 
-    console.log("Seeding Database...");
+    console.log("Seeding initial data...");
     await Team.findOneAndUpdate({ _id: "team_alpha" }, { name: "Alpha Squad" }, { upsert: true });
 
     const userData = [
@@ -174,7 +188,7 @@ db.seed = async () => {
     await ModuleConfig.findOneAndUpdate({ _id: "Time & Attendance" }, { enabled: true }, { upsert: true });
     console.log("Seed finished successfully.");
   } catch (error) {
-    console.error("Seeding error:", error);
+    console.error("Critical Seeding error:", error);
   }
 };
 

@@ -69,30 +69,35 @@ const ServerStatusDashboard = () => {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">N</div>
               <h1 className="text-2xl font-bold text-white tracking-tight">NEO Backend <span className="text-blue-500 font-light">Monitor</span></h1>
             </div>
-            <p className="text-slate-400 text-sm">Deployment URL: <span className="text-blue-400 font-mono">{window.location.hostname}</span></p>
+            <p className="text-slate-400 text-sm italic">Env: <span className="text-blue-400 font-mono font-normal uppercase">{status?.env || 'detecting...'}</span></p>
           </div>
           
           <div className={`flex items-center gap-3 px-5 py-2.5 rounded-full border transition-all duration-500 ${error || !isDbHealthy ? 'bg-red-500/10 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}>
             <div className={`w-3 h-3 rounded-full ${error || !isDbHealthy ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></div>
-            <span className="text-sm font-semibold uppercase tracking-wider">{error || !isDbHealthy ? 'Link Issue' : 'Database Linked'}</span>
+            <span className="text-sm font-semibold uppercase tracking-wider">{error || !isDbHealthy ? 'Disconnected' : 'Database Online'}</span>
           </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 p-6 rounded-2xl shadow-xl">
-              <h3 className="text-slate-500 text-xs font-bold mb-4 uppercase tracking-widest">Runtime Uptime</h3>
-              <div className="text-3xl font-mono font-bold text-white mb-2">{status?.uptime || '0'}<span className="text-lg text-slate-500 ml-1">sec</span></div>
+              <h3 className="text-slate-500 text-xs font-bold mb-4 uppercase tracking-widest">Database Diagnostics</h3>
+              <div className="text-sm font-mono text-slate-300 break-all mb-4 bg-slate-950/50 p-2 rounded border border-slate-800">
+                URI: <span className="text-blue-400">{status?.dbUri || '...'}</span>
+              </div>
               <div className="text-sm text-slate-400 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isDbHealthy ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                Mongoose: <span className={isDbHealthy ? 'text-emerald-400' : 'text-red-400'}>{status?.dbStatus || 'Searching...'}</span>
+                State: <span className={isDbHealthy ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>{status?.dbStatus || 'Searching...'}</span>
               </div>
             </div>
 
             <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 p-6 rounded-2xl shadow-xl">
-              <h3 className="text-slate-500 text-xs font-bold mb-4 uppercase tracking-widest">Memory</h3>
+              <h3 className="text-slate-500 text-xs font-bold mb-4 uppercase tracking-widest">Memory & Performance</h3>
               <div className="text-3xl font-mono font-bold text-white mb-2">{status?.memoryUsage || '0.00'}<span className="text-lg text-slate-500 ml-1">mb</span></div>
-              <div className="text-sm text-slate-400">Node heap usage</div>
+              <div className="text-sm text-slate-400 flex justify-between">
+                <span>Node Heap</span>
+                <span className="text-slate-500 font-mono">Uptime: {status?.uptime}s</span>
+              </div>
             </div>
             
             <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 p-6 rounded-2xl shadow-xl md:col-span-2">
@@ -116,7 +121,7 @@ const ServerStatusDashboard = () => {
               ) : (
                 <div className="py-12 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-xl text-slate-500">
                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-                   <p className="text-sm italic">Connecting to MongoDB Atlas Cluster...</p>
+                   <p className="text-sm italic">Connecting to Cluster...</p>
                 </div>
               )}
             </div>
@@ -145,36 +150,6 @@ const ServerStatusDashboard = () => {
                 </button>
               ))}
             </div>
-            <div className="mt-6 p-3 bg-amber-500/5 rounded-lg border border-amber-500/10">
-              <p className="text-[10px] text-amber-400 leading-relaxed font-bold">
-                PRO-TIP: If tables are missing in Atlas, click "FORCE RE-SEED DB" to trigger initial data insertion.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5">
-          <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-            <h2 className="font-semibold text-white text-sm flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-              JSON Response Log
-            </h2>
-            {lastResponse && (
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${lastResponse.status < 300 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                CODE: {lastResponse.status}
-              </span>
-            )}
-          </div>
-          <div className="p-6 bg-slate-950 font-mono text-xs overflow-auto h-[300px] scrollbar-hide">
-            {lastResponse ? (
-              <pre className="text-blue-400 whitespace-pre-wrap">
-                {JSON.stringify(lastResponse.data, null, 2)}
-              </pre>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-700 space-y-3 opacity-50">
-                <p className="text-xs uppercase tracking-widest font-bold">Awaiting Test Command...</p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -185,14 +160,21 @@ const ServerStatusDashboard = () => {
             </div>
             <div>
               <p className="font-bold mb-1 uppercase tracking-tight">System Notification</p>
-              <p className="text-red-400/70 leading-relaxed font-mono">
+              <div className="text-red-400/70 leading-relaxed font-mono whitespace-pre-wrap mb-4">
                 {error || status?.dbError}
-              </p>
-              <p className="mt-2 text-slate-500 italic">
-                {status?.dbError?.includes('IP') || status?.dbError?.includes('whitelist') ? 
-                  'ACTION REQUIRED: You must whitelist Vercel IPs (0.0.0.0/0) in your MongoDB Atlas Network Access settings.' : 
-                  'ACTION REQUIRED: Verify your MONGODB_URI in server/config.js or Vercel Environment Variables.'}
-              </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                  <p className="text-white font-bold mb-2 uppercase text-[10px]">Step 1: Whitelist Vercel</p>
+                  <p className="text-slate-400 mb-2 leading-tight">Must allow access from everywhere.</p>
+                  <code className="bg-slate-950 px-2 py-1 rounded text-blue-400">0.0.0.0/0</code>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                  <p className="text-white font-bold mb-2 uppercase text-[10px]">Step 2: Atlas Permissions</p>
+                  <p className="text-slate-400 mb-2 leading-tight">Ensure your user has 'Atlas Admin' or 'Read and Write' role.</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
