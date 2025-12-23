@@ -9,19 +9,16 @@ exports.login = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ where: { email, password } });
+    const user = await User.findOne({ email, password });
 
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Returning User ID as mock token
-    const mockToken = user.id; 
-
     res.status(200).json({
-      token: mockToken, 
+      token: user._id, 
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -36,7 +33,7 @@ exports.login = async (req, res) => {
 exports.getMe = (req, res) => {
   const user = req.user;
   res.status(200).json({
-    id: user.id,
+    id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,

@@ -1,8 +1,8 @@
+
 const config = require('../config');
 const db = require('../models');
 const User = db.User;
 
-// Middleware to verify authentication token
 exports.verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   
@@ -12,15 +12,12 @@ exports.verifyToken = async (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   
-  // Simulation: We treat the token as the User ID directly for the nut shell demo.
-  // In a real app, verify JWT here: jwt.verify(token, config.JWT_SECRET)
-  
   try {
-    let user = await User.findByPk(token);
+    // For this shell, token is just the ID
+    let user = await User.findById(token);
 
-    // Fallback for demo convenience: if token is long JWT string, default to emp_1
     if (!user && token.startsWith("eyJ")) {
-       user = await User.findByPk("emp_1");
+       user = await User.findById("emp_1");
     }
 
     if (!user) {

@@ -1,36 +1,25 @@
 
 const db = require('../models');
-const { Op } = require('sequelize');
 
 exports.getTimesheetReport = async (req, res) => {
     const { reportType, startDate, endDate, userId } = req.query;
     
-    // Simplified logic for "Individual Timesheet"
     if (reportType === 'Individual Timesheet' && userId) {
         try {
-          const user = await db.User.findByPk(userId);
-          const logs = await db.TimeLog.findAll({
-            where: {
+          const user = await db.User.findById(userId);
+          const logs = await db.TimeLog.find({
               userId: userId,
-              date: { [Op.between]: [new Date(startDate), new Date(endDate)] }
-            },
-            include: [{
-              model: db.Task,
-              include: [{
-                model: db.Job,
-                include: [{
-                  model: db.Project,
-                  include: [db.Client]
-                }]
-              }]
-            }]
+              date: { $gte: new Date(startDate), $lte: new Date(endDate) }
+          }).populate({
+              path: 'taskId',
+              populate: { path: 'jobId', populate: { path: 'projectId', populate: { path: 'clientId' } } }
           });
 
-          // Group by Date
+          // Grouping logic
           const grouped = logs.reduce((acc, log) => {
-              const date = new Date(log.date).toISOString().split('T')[0];
-              if (!acc[date]) acc[date] = [];
-              acc[date].push(log);
+              const dateKey = log.date.toISOString().split('T')[0];
+              if (!acc[dateKey]) acc[dateKey] = [];
+              acc[dateKey].push(log);
               return acc;
           }, {});
 
@@ -38,51 +27,41 @@ exports.getTimesheetReport = async (req, res) => {
               const dayLogs = grouped[date];
               return {
                   date,
-                  tasks: dayLogs.map(l => {
-                      return {
-                          taskName: l.task?.name,
-                          projectName: l.task?.job?.project?.name,
-                          clientName: l.task?.job?.project?.client?.name,
-                          loggedHours: l.loggedHours,
-                          notes: l.notes
-                      };
-                  }),
+                  tasks: dayLogs.map(l => ({
+                      taskName: l.taskId?.name,
+                      projectName: l.taskId?.jobId?.projectId?.name,
+                      clientName: l.taskId?.jobId?.projectId?.clientId?.name,
+                      loggedHours: l.loggedHours,
+                      notes: l.notes
+                  })),
                   totalHoursDay: dayLogs.reduce((sum, l) => sum + l.loggedHours, 0)
               };
           });
-
-          const totalHours = logs.reduce((sum, l) => sum + l.loggedHours, 0);
 
           res.json({
               reportTitle: `Individual Timesheet Report for ${user?.name}`,
               period: `${startDate} to ${endDate}`,
               generatedBy: req.user.name,
               data,
-              grandTotalHours: totalHours
+              grandTotalHours: logs.reduce((sum, l) => sum + l.loggedHours, 0)
           });
         } catch(err) {
           res.status(500).json({error: err.message});
         }
     } else {
-        res.status(501).json({ message: "Only Individual Timesheet supported in nut shell API" });
+        res.status(501).json({ message: "Not supported" });
     }
 };
 
 exports.getLeaveBalance = async (req, res) => {
     const { userId } = req.params;
     try {
-      const user = await db.User.findByPk(userId);
-      if (!user) return res.status(404).json({error: "User not found"});
-
-      const balance = await db.LeaveBalance.findByPk(userId);
+      const balance = await db.LeaveBalance.findById(userId);
       res.json({
-          userId: user.id,
-          userName: user.name,
+          userId,
           annualLeave: balance?.annual || 0,
           sickLeave: balance?.sick || 0,
           casualLeave: balance?.casual || 0
       });
-    } catch(err) {
-      res.status(500).json({error: err.message});
-    }
+    } catch(err) { res.status(500).json({error: err.message}); }
 };

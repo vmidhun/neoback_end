@@ -1,60 +1,73 @@
 
 const db = require('../models');
-const { Op } = require('sequelize');
+const mongoose = require('mongoose');
 
 exports.getEmployeeDashboard = async (req, res) => {
   const { userId } = req.params;
   
-  // Authorization check
-  if (req.user.id !== userId && !['Admin', 'HR', 'Scrum Master'].includes(req.user.role)) {
+  if (req.user._id !== userId && !['Admin', 'HR', 'Scrum Master'].includes(req.user.role)) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
   try {
-    // Get logs for today
     const startOfDay = new Date();
     startOfDay.setHours(0,0,0,0);
     const endOfDay = new Date();
     endOfDay.setHours(23,59,59,999);
 
-    const userLogsToday = await db.TimeLog.findAll({
-      where: {
-        userId: userId,
-        date: { [Op.between]: [startOfDay, endOfDay] }
-      }
-    });
-    
-    const totalLogged = userLogsToday.reduce((sum, log) => sum + log.loggedHours, 0);
+    // Sum today's logs
+    const logsToday = await db.TimeLog.aggregate([
+      { $match: { userId: userId, date: { $gte: startOfDay, $lte: endOfDay } } },
+      { $group: { _id: null, total: { $sum: "$loggedHours" } } }
+    ]);
+    const totalLoggedToday = logsToday.length > 0 ? logsToday[0].total : 0;
 
-    // Get all tasks to calculate potential work
-    const allTasks = await db.Task.findAll({
-      include: [{
-        model: db.Job,
-        include: [{
-          model: db.Project,
-          include: [db.Client]
-        }]
-      }]
-    });
-
-    // Hydrate plan with logs
-    const dailyPlan = await Promise.all(allTasks.map(async (task) => {
-      const logs = await db.TimeLog.sum('loggedHours', {
-        where: { taskId: task.id, userId: userId }
+    // Get all tasks with deep population
+    const allTasks = await db.Task.find()
+      .populate({
+        path: 'jobId',
+        model: 'Job',
+        populate: {
+          path: 'projectId',
+          model: 'Project',
+          populate: { path: 'clientId', model: 'Client' }
+        }
       });
+
+    // Calculate logged hours per task (lifetime)
+    const taskLogs = await db.TimeLog.aggregate([
+      { $match: { userId: userId } },
+      { $group: { _id: "$taskId", total: { $sum: "$loggedHours" } } }
+    ]);
+    const logMap = taskLogs.reduce((map, item) => {
+      map[item._id] = item.total;
+      return map;
+    }, {});
+
+    const dailyPlan = allTasks.map(task => {
+      const job = task.jobId;
+      const project = job ? job.projectId : null;
       
       return {
-        id: task.id,
+        id: task._id,
         name: task.name,
         allocatedHours: task.allocatedHours,
         status: task.status,
         assignedBy: task.assignedBy,
-        job: task.job,
-        loggedHours: logs || 0
+        job: job ? {
+          id: job._id,
+          name: job.name,
+          project: project ? {
+            id: project._id,
+            name: project.name,
+            client: project.clientId ? { id: project.clientId._id, name: project.clientId.name } : null
+          } : null
+        } : null,
+        loggedHours: logMap[task._id] || 0
       };
-    }));
+    });
     
-    const leave = await db.LeaveBalance.findByPk(userId);
+    const leave = await db.LeaveBalance.findById(userId);
 
     res.status(200).json({
       checkInStatus: {
@@ -62,7 +75,7 @@ exports.getEmployeeDashboard = async (req, res) => {
         checkInTime: new Date().toISOString()
       },
       dailyPlan: dailyPlan,
-      totalLoggedHoursToday: totalLogged,
+      totalLoggedHoursToday: totalLoggedToday,
       requiredDailyHours: 8,
       leaveBalance: leave || { annual: 0, sick: 0, casual: 0 }
     });
@@ -76,18 +89,23 @@ exports.getScrumMasterDashboard = async (req, res) => {
   const { teamId } = req.params;
   
   try {
-    const team = await db.Team.findByPk(teamId);
+    const team = await db.Team.findById(teamId);
     if (!team) return res.status(404).json({ error: "Team not found" });
 
-    const teamMembers = await db.User.findAll({ where: { teamId } });
+    const teamMembers = await db.User.find({ teamId });
     
     const membersStatus = await Promise.all(teamMembers.map(async (m) => {
-        const total = await db.TimeLog.sum('loggedHours', { where: { userId: m.id } }) || 0;
+        const logs = await db.TimeLog.aggregate([
+          { $match: { userId: m._id } },
+          { $group: { _id: null, total: { $sum: "$loggedHours" } } }
+        ]);
+        const total = logs.length > 0 ? logs[0].total : 0;
+        
         return {
-            id: m.id,
+            id: m._id,
             name: m.name,
             avatarUrl: m.avatarUrl,
-            checkInTime: "2024-07-20T09:00:00Z", // Mock
+            checkInTime: "2024-07-20T09:00:00Z", 
             totalLoggedHours: total,
             requiredHours: 8,
             progressPercentage: Math.min((total / 8) * 100, 100)
@@ -104,7 +122,6 @@ exports.getScrumMasterDashboard = async (req, res) => {
 };
 
 exports.getReportsDashboard = async (req, res) => {
-    // Mock aggregations
     res.status(200).json({
         projectHoursDistribution: [
           { name: "Project Phoenix", value: 400 },
@@ -122,13 +139,13 @@ exports.getReportsDashboard = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
     try {
-      const modules = await db.ModuleConfig.findAll();
-      const clientsCount = await db.Client.count();
-      const projectsCount = await db.Project.count();
-      const jobsCount = await db.Job.count();
+      const modules = await db.ModuleConfig.find();
+      const clientsCount = await db.Client.countDocuments();
+      const projectsCount = await db.Project.countDocuments();
+      const jobsCount = await db.Job.countDocuments();
 
       res.status(200).json({
-        moduleConfigurations: modules,
+        moduleConfigurations: modules.map(m => ({ name: m._id, enabled: m.enabled })),
         masterDataSummaries: {
           clientsCount,
           projectsCount,
