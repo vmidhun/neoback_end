@@ -19,7 +19,7 @@ const connectDB = async () => {
     
     cachedConnection = mongoose.connect(uri, {
       dbName: config.DB.NAME,
-      serverSelectionTimeoutMS: 8000, // Reduced for Vercel (10s limit)
+      serverSelectionTimeoutMS: 8000,
       connectTimeoutMS: 8000,
     });
     
@@ -150,37 +150,67 @@ const db = {
   Attendance
 };
 
-db.seed = async () => {
+db.seed = async (force = false) => {
   try {
     const userCount = await User.countDocuments();
-    if (userCount > 0) return;
+    if (userCount > 0 && !force) return;
 
     console.log("Seeding database...");
+    
+    // Clear collections if forced
+    if (force) {
+        await Promise.all(Object.values(mongoose.models).map(m => m.deleteMany({})));
+    }
+
+    // Teams
     await Team.findOneAndUpdate({ _id: "team_alpha" }, { name: "Alpha Squad" }, { upsert: true });
 
+    // Users
     const userData = [
       { _id: "emp_1", name: "Alex Doe", email: "alex@neo.com", password: "password", role: "Employee", avatarUrl: "https://i.pravatar.cc/150?u=emp_1", teamId: "team_alpha" },
       { _id: "emp_2", name: "Liam Gallagher", email: "liam@neo.com", password: "password", role: "Scrum Master", avatarUrl: "https://i.pravatar.cc/150?u=emp_2", teamId: "team_alpha" },
-      { _id: "admin_1", name: "Sarah Connor", email: "admin@neo.com", password: "admin", role: "Admin", avatarUrl: "https://i.pravatar.cc/150?u=admin_1" }
+      { _id: "admin_1", name: "Sarah Connor", email: "admin@neo.com", password: "admin", role: "Admin", avatarUrl: "https://i.pravatar.cc/150?u=admin_1" },
+      { _id: "hr_1", name: "Priya Sharma", email: "hr@neo.com", password: "hr", role: "HR", avatarUrl: "https://i.pravatar.cc/150?u=hr_1" }
     ];
-    
+    for (const u of userData) await User.findOneAndUpdate({ _id: u._id }, u, { upsert: true });
+
+    // Leave Balances
     for (const u of userData) {
-      await User.findOneAndUpdate({ _id: u._id }, u, { upsert: true });
+        await LeaveBalance.findOneAndUpdate({ _id: u._id }, { annual: 12, sick: 5, casual: 2 }, { upsert: true });
     }
 
+    // Clients, Projects, Jobs
     await Client.findOneAndUpdate({ _id: "cli_1" }, { name: "Innovate Corp" }, { upsert: true });
-    await Project.findOneAndUpdate({ _id: "proj_1" }, { name: "Project Phoenix", clientId: "cli_1" }, { upsert: true });
-    await Job.findOneAndUpdate({ _id: "job_1" }, { name: "Backend Development", projectId: "proj_1" }, { upsert: true });
+    await Client.findOneAndUpdate({ _id: "cli_2" }, { name: "Quantum Solutions" }, { upsert: true });
     
-    await Task.findOneAndUpdate({ _id: "task_1" }, { 
-        name: "Implement user authentication", 
-        jobId: "job_1", 
-        allocatedHours: 8, 
-        status: "To Do", 
-        assignedBy: "Liam Gallagher" 
-    }, { upsert: true });
+    await Project.findOneAndUpdate({ _id: "proj_1" }, { name: "Project Phoenix", clientId: "cli_1" }, { upsert: true });
+    await Project.findOneAndUpdate({ _id: "proj_2" }, { name: "Orion Platform", clientId: "cli_2" }, { upsert: true });
 
-    await ModuleConfig.findOneAndUpdate({ _id: "Time & Attendance" }, { enabled: true }, { upsert: true });
+    await Job.findOneAndUpdate({ _id: "job_1" }, { name: "Backend Development", projectId: "proj_1" }, { upsert: true });
+    await Job.findOneAndUpdate({ _id: "job_2" }, { name: "UI/UX Design", projectId: "proj_1" }, { upsert: true });
+    await Job.findOneAndUpdate({ _id: "job_3" }, { name: "Database Optimization", projectId: "proj_2" }, { upsert: true });
+    
+    // Tasks
+    const tasksData = [
+        { _id: "task_1", name: "Implement user authentication", jobId: "job_1", allocatedHours: 8, status: "To Do", assignedBy: "Liam Gallagher" },
+        { _id: "task_2", name: "Design dashboard wireframes", jobId: "job_2", allocatedHours: 6, status: "In Progress", assignedBy: "Liam Gallagher" },
+        { _id: "task_3", name: "Schema Migration", jobId: "job_3", allocatedHours: 4, status: "Completed", assignedBy: "Liam Gallagher" }
+    ];
+    for (const t of tasksData) await Task.findOneAndUpdate({ _id: t._id }, t, { upsert: true });
+
+    // Time Logs
+    await TimeLog.findOneAndUpdate({ _id: "log_1" }, { taskId: "task_1", userId: "emp_1", loggedHours: 2.5, notes: "Initial setup", date: new Date() }, { upsert: true });
+
+    // Config
+    const configs = ["Time & Attendance", "Leave Management", "Payroll Integration"];
+    for (const c of configs) await ModuleConfig.findOneAndUpdate({ _id: c }, { enabled: c !== "Payroll Integration" }, { upsert: true });
+
+    // Announcements & Holidays (for the monitor counts)
+    await Announcement.findOneAndUpdate({ _id: "ann_1" }, { title: "New Policy", content: "Work from home", authorId: "admin_1" }, { upsert: true });
+    await Holiday.findOneAndUpdate({ _id: "hol_1" }, { name: "New Year", date: new Date("2024-01-01") }, { upsert: true });
+    await Attendance.findOneAndUpdate({ _id: "att_1" }, { userId: "emp_1", checkIn: new Date() }, { upsert: true });
+
+    console.log("Database seeded successfully.");
   } catch (error) {
     console.error("Seeding error:", error);
   }
