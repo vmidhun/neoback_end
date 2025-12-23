@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./config');
-const os = require('os');
 
 const app = express();
 
@@ -13,14 +12,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from the project root
-// In Vercel, we need to ensure path resolution is reliable
 const projectRoot = path.join(__dirname, '../');
 app.use(express.static(projectRoot));
 
-// --- Initialization with Error Handling ---
+// --- Database State Management ---
 let db;
 let dbLoadError = null;
 let dbConnectionError = null;
+let dbInitPromise = null;
 const startTime = Date.now();
 
 try {
@@ -30,14 +29,45 @@ try {
   dbLoadError = err;
 }
 
-// Dedicated Status Endpoint for the Frontend Dashboard
+/**
+ * Ensures database is connected and seeded.
+ * This is crucial for Vercel where app.listen() isn't the entry point.
+ */
+const ensureDb = async () => {
+  if (dbLoadError) throw dbLoadError;
+  if (!db) throw new Error("Database models not loaded");
+
+  // If already connecting/connected, return the existing promise
+  if (dbInitPromise) return dbInitPromise;
+
+  dbInitPromise = (async () => {
+    try {
+      console.log("Initializing Database connection...");
+      await db.connectDB();
+      console.log("Database connected. Running Seeder...");
+      await db.seed();
+      console.log("Database ready.");
+      return true;
+    } catch (err) {
+      dbConnectionError = err;
+      dbInitPromise = null; // Allow retry on next request
+      throw err;
+    }
+  })();
+
+  return dbInitPromise;
+};
+
+// Dedicated Status Endpoint
 app.get('/api/status', async (req, res) => {
+  // Try to connect but don't block the status report if it fails
+  try { await ensureDb(); } catch (e) { /* ignored for status report */ }
+
   let dbStatus = "Disconnected";
   let counts = {};
   
   if (db && db.mongoose && db.mongoose.connection.readyState === 1) {
     dbStatus = "Connected";
-    dbConnectionError = null;
     try {
       counts = {
         users: await db.User.countDocuments(),
@@ -69,16 +99,31 @@ app.get('/api/status', async (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api', (req, res, next) => {
-  if (dbLoadError) {
-    return res.status(503).json({
+// Endpoint to manually trigger seed (useful for debugging Vercel deployments)
+app.post('/api/admin/seed', async (req, res) => {
+  try {
+    await ensureDb();
+    await db.seed();
+    res.json({ message: "Seed operation completed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API Routes - Wrap with DB check
+app.use('/api', async (req, res, next) => {
+  if (req.path === '/status' || req.path === '/admin/seed') return next();
+  
+  try {
+    await ensureDb();
+    next();
+  } catch (err) {
+    res.status(503).json({
       error: "Service Unavailable",
       message: "Database failed to initialize.",
-      details: dbLoadError.message
+      details: err.message
     });
   }
-  next();
 }, require('./routes/index'));
 
 // Catch-all route to serve the frontend (SPA support)
@@ -86,30 +131,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
-// Start Server (Only start if not being required by a serverless runner like Vercel)
+// Local Development Entry Point
 if (require.main === module) {
   const port = config.PORT || 3000;
-  app.listen(port, async () => {
-    console.log(`Unified Server running on port ${port}`);
-    if (db && !dbLoadError) {
-      try {
-        await db.connectDB();
-        await db.seed();
-      } catch (err) {
-        dbConnectionError = err;
-        console.error("Failed to connect to MongoDB:", err.message);
-      }
-    }
+  app.listen(port, () => {
+    console.log(`Development server running on port ${port}`);
+    ensureDb().catch(err => console.error("Initial DB connection failed:", err.message));
   });
-} else {
-    // We are in a serverless environment
-    if (db && !dbLoadError) {
-        db.connectDB().catch(err => {
-            dbConnectionError = err;
-            console.error("Vercel DB Connect Error:", err.message);
-        });
-    }
 }
 
-// Export app for Vercel
+// Export for Vercel
 module.exports = app;
