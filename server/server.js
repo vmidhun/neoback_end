@@ -19,50 +19,44 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request Logger for debugging Vercel path resolution
+// Debug Middleware: Log incoming requests to help diagnose Vercel routing in logs
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[NEO-DEBUG] Request Received: ${req.method} ${req.url} (Path: ${req.path})`);
   next();
 });
 
 // 2. Database Initialization Logic
 try {
-  // Use absolute-style resolution relative to this file
-  db = require(path.join(__dirname, 'models', 'index.js'));
-  console.log("Database models loaded successfully.");
+  // Use absolute resolution for serverless environments
+  const modelsPath = path.join(__dirname, 'models', 'index.js');
+  db = require(modelsPath);
+  console.log("SUCCESS: Database models module loaded.");
 } catch (err) {
-  console.error("CRITICAL: Database models failed to load. Check server/models directory structure.");
-  console.error("Model Load Error Details:", err); // Explicit console log for DB load errors
+  console.error("CRITICAL ERROR: Database models failed to load. The file 'server/models/index.js' might be missing or broken.");
+  console.error(err); // Full error object logged as requested
   dbLoadError = err;
 }
 
 const ensureDb = async () => {
-  if (dbLoadError) {
-    console.error("Database cannot initialize because models failed to load.");
-    throw dbLoadError;
-  }
-  if (!db) {
-    const err = new Error("Database module not initialized");
-    console.error(err.message);
-    throw err;
-  }
+  if (dbLoadError) throw dbLoadError;
+  if (!db) throw new Error("Database module not found");
   if (dbInitPromise) return dbInitPromise;
 
   dbInitPromise = (async () => {
     try {
-      console.log("Attempting to connect to MongoDB...");
+      console.log("ACTION: Attempting to establish connection to MongoDB Cluster...");
       await db.connectDB();
-      console.log("MongoDB connected successfully.");
+      console.log("SUCCESS: MongoDB connection established.");
       if (!isSeeded) {
         await db.seed();
         isSeeded = true;
       }
       return true;
     } catch (err) {
-      console.error("CRITICAL: MongoDB Connection Attempt Failed!");
-      console.error("Connection Error Details:", err); // Explicit console log for DB connection errors as requested
+      console.error("!!! DATABASE CONNECTION FAILED !!!");
+      console.error("Details:", err); // Explicitly logging the full error object for diagnostics
       dbConnectionError = err;
-      dbInitPromise = null; // Allow retry on next request
+      dbInitPromise = null; // Allow retry on subsequent requests
       throw err;
     }
   })();
@@ -75,11 +69,11 @@ const getMaskedUri = (uri) => {
   return uri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@");
 };
 
-// 3. PRIMARY API ENDPOINTS (Defined directly on 'app' for maximum visibility)
+// 3. PRIORITY API ENDPOINTS
+// Defined early to ensure they are captured by Vercel's rewrite destination
 
-// Public System Health Endpoint
 app.get('/api/status', async (req, res) => {
-  // Trigger DB connection in background if not ready
+  // Attempt background connection check
   ensureDb().catch(() => {});
 
   let dbStatus = "Disconnected";
@@ -97,7 +91,7 @@ app.get('/api/status', async (req, res) => {
         attendance: await db.Attendance.countDocuments()
       };
     } catch (e) {
-      console.error("Status count aggregation error:", e.message);
+      console.error("Collection count aggregation failed:", e.message);
     }
   } else if (db && db.mongoose) {
     const states = { 0: 'Disconnected', 1: 'Connected', 2: 'Connecting', 3: 'Disconnecting' };
@@ -113,29 +107,29 @@ app.get('/api/status', async (req, res) => {
     dbError: dbConnectionError?.message || dbLoadError?.message || null,
     counts,
     isSeeded,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    route: req.url // Include route in response for easier debugging
   });
 });
 
-// Admin Seed Endpoint
 app.post('/api/admin/seed', async (req, res) => {
   try {
     await ensureDb();
     await db.seed(true);
     isSeeded = true;
-    return res.json({ success: true, message: "Database reset and seeded." });
+    return res.json({ success: true, message: "Database reset and seeded successfully." });
   } catch (err) {
-    console.error("Manual seed failed:", err);
+    console.error("Manual seed request failed:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // 4. BUSINESS LOGIC ROUTING
-const businessRoutes = require('./routes/index');
+const routesPath = path.join(__dirname, 'routes', 'index.js');
+const businessRoutes = require(routesPath);
 
-// Protect and mount the rest of the /api routes
 app.use('/api', async (req, res, next) => {
-  // Already handled endpoints
+  // Pass through status/seed as they are handled above
   if (req.path === '/status' || req.path === '/admin/seed') return next();
   
   try {
@@ -143,28 +137,27 @@ app.use('/api', async (req, res, next) => {
     next();
   } catch (err) {
     return res.status(503).json({
-      error: "Database Unavailable",
-      message: "The backend is currently unable to communicate with the database.",
+      error: "DB_NEGOTIATION_FAILED",
+      message: "The backend cannot communicate with the database cluster.",
       details: err.message
     });
   }
 }, businessRoutes);
 
-// Explicit 404 for any unmatched /api requests to prevent HTML leakage
+// Explicit 404 for unmatched /api routes
 app.all('/api/*', (req, res) => {
-  console.log(`404 at API route: ${req.method} ${req.url}`);
+  console.log(`[API-404] No match for ${req.method} ${req.url}`);
   return res.status(404).json({
-    error: "API Resource Not Found",
+    error: "ENDPOINT_NOT_DEFINED",
     path: req.originalUrl,
     method: req.method,
-    hint: "Verify your API path and method. /api/status should be available."
+    suggestion: "Check your route definitions in server/routes/index.js"
   });
 });
 
-// 5. FRONTEND SERVING
+// 5. STATIC FILES & SPA SERVING
 const projectRoot = process.cwd();
 
-// Serve static assets
 app.use(express.static(projectRoot, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
@@ -173,30 +166,29 @@ app.use(express.static(projectRoot, {
   }
 }));
 
-// SPA Catch-all (serves the frontend app for any non-API route)
 app.get('*', (req, res) => {
-  // If it's an API-like request that reached here, it's definitely a 404
+  // If an API-prefixed request reaches here, it's definitely a 404
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: "Invalid API route structure" });
+    return res.status(404).json({ error: "Invalid API route path" });
   }
 
   const indexPath = path.join(projectRoot, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      console.error(`Index file not found at ${indexPath}`);
-      res.status(500).send("Critical Error: index.html is missing. Ensure the frontend is built correctly.");
+      console.error(`SPA ERROR: index.html not found at ${indexPath}`);
+      res.status(500).send("The application UI (index.html) is currently unavailable.");
     }
   });
 });
 
-// Start Server for local development
+// Start Server (Local Development)
 if (require.main === module) {
   const port = config.PORT || 3000;
   app.listen(port, () => {
-    console.log(`NEO Backend Monitor active on port ${port}`);
-    ensureDb().catch(e => console.warn("Initial DB connection failed. Will retry on next request."));
+    console.log(`NEO MONITOR: Listening on http://localhost:${port}`);
+    ensureDb().catch(e => console.warn("Background DB init deferred until first request."));
   });
 }
 
-// Export for Vercel
+// Export for Vercel Serverless
 module.exports = app;
