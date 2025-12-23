@@ -1,144 +1,86 @@
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const config = require('./config');
 
 const app = express();
+const startTime = Date.now();
 
-// --- TEST MODE CONFIGURATION ---
-// Set SIMULATION_MODE to true to bypass all DB logic and test Express routing/Vercel connectivity.
+// --- CONFIGURATION ---
 const SIMULATION_MODE = true; 
 
-// Global state tracking
-const startTime = Date.now();
-let db = null;
-let dbLoadError = null;
-let dbConnectionError = null;
-
-// 1. Core Middleware
+// 1. GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Debug logging for Vercel Console
+// Logging for Vercel Dashboard
 app.use((req, res, next) => {
-  console.log(`[NEO-DEBUG] Request: ${req.method} ${req.url}`);
+  console.log(`[NEO-API] ${req.method} ${req.url}`);
   next();
 });
 
-// 2. Database Initialization (Strictly conditional)
-if (!SIMULATION_MODE) {
-  try {
-    db = require('./models');
-    console.log("SUCCESS: Database models module loaded.");
-  } catch (err) {
-    console.error("CRITICAL ERROR: Database models failed to load.");
-    dbLoadError = err;
-  }
-}
+// 2. ROBUST STATUS HANDLER
+// We handle both /api/status and /status to ensure compatibility with Vercel rewrites
+const handleStatus = (req, res) => {
+  const diagnosticData = {
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    timestamp: new Date().toISOString(),
+    memory: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB",
+    routing: "VERIFIED",
+    env: process.env.NODE_ENV || 'development'
+  };
 
-const ensureDb = async () => {
-  if (SIMULATION_MODE) return true;
-  if (!db) throw new Error(dbLoadError ? dbLoadError.message : "Database module not initialized");
-  
-  try {
-    await db.connectDB();
-    return true;
-  } catch (err) {
-    dbConnectionError = err;
-    throw err;
-  }
-};
-
-// 3. THE DUMMY API (Requested for testing)
-// This handler is placed before any other /api logic for maximum reliability.
-app.get('/api/status', (req, res) => {
-  console.log("[NEO-DEBUG] Hit /api/status route");
-  
   if (SIMULATION_MODE) {
     return res.status(200).json({
-      uptime: Math.floor((Date.now() - startTime) / 1000),
-      memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
-      dbStatus: "Connected (Simulated)",
-      dbName: "neo_dummy_db",
-      dbUri: "mongodb://SIMULATED_INSTANCE",
-      dbError: null,
-      counts: { 
-        users: 15, 
-        projects: 10, 
-        tasks: 42, 
-        announcements: 3, 
-        holidays: 1, 
-        attendance: 25 
-      },
+      ...diagnosticData,
+      dbStatus: "Connected (Simulation)",
       isSeeded: true,
-      timestamp: new Date().toISOString(),
-      mode: "DUMMY_API_TEST",
-      vercelRouting: "OPERATIONAL"
+      counts: { users: 5, projects: 2, tasks: 3, announcements: 1, holidays: 1, attendance: 1 }
     });
   }
 
-  // Real DB Logic fallback
-  ensureDb().then(() => {
-    res.status(200).json({
-      uptime: Math.floor((Date.now() - startTime) / 1000),
-      dbStatus: "Connected",
-      timestamp: new Date().toISOString()
-    });
-  }).catch(err => {
-    res.status(200).json({
-      uptime: Math.floor((Date.now() - startTime) / 1000),
-      dbStatus: "Disconnected",
-      dbError: err.message,
-      timestamp: new Date().toISOString()
-    });
+  // Real DB Logic Placeholder
+  res.status(200).json({
+    ...diagnosticData,
+    dbStatus: "Production Mode Enabled",
+    note: "Database connection logic would execute here."
+  });
+};
+
+app.get('/api/status', handleStatus);
+app.get('/status', handleStatus);
+
+// 3. MOCK BUSINESS ROUTES
+// These respond to the probes in the Dashboard
+app.get(['/api/tasks', '/tasks'], (req, res) => {
+  res.json([{ id: 'task_1', name: 'System Handshake', status: 'Completed' }]);
+});
+
+app.get(['/api/projects', '/projects'], (req, res) => {
+  res.json([{ id: 'proj_1', name: 'NEO Infrastructure' }]);
+});
+
+app.get(['/api/auth/me', '/auth/me'], (req, res) => {
+  res.json({ id: 'admin', name: 'NEO Architect', role: 'Admin' });
+});
+
+app.post(['/api/admin/seed', '/admin/seed'], (req, res) => {
+  res.json({ message: "Simulated database reset complete." });
+});
+
+// 4. API ERROR CATCH-ALL
+// If a request hits the API function but no route matches
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    error: "API_ENDPOINT_NOT_FOUND",
+    path: req.url,
+    message: "The requested NEO service endpoint does not exist."
   });
 });
 
-// 4. BUSINESS LOGIC ROUTING
-app.use('/api', async (req, res, next) => {
-  // If simulation is on, return mock data for standard endpoints
-  if (SIMULATION_MODE) {
-    if (req.path === '/tasks') return res.json([{ id: 'mock_1', name: 'Verify Express Routing', status: 'In Progress' }]);
-    if (req.path === '/projects') return res.json([{ id: 'mock_proj_1', name: 'NEO Infrastructure System' }]);
-    if (req.path === '/auth/me') return res.json({ id: 'mock_admin', name: 'Neo Architect', role: 'Admin' });
-    
-    // Prevent fall-through to real routes if simulation is on
-    if (req.path !== '/status') {
-      return res.status(404).json({ error: "Simulated endpoint not mapped", path: req.path });
-    }
-  }
-
-  try {
-    await ensureDb();
-    const routes = require('./routes');
-    routes(req, res, next);
-  } catch (err) {
-    return res.status(503).json({ error: "DATABASE_UNAVAILABLE", details: err.message });
-  }
-});
-
-// Explicit 404 for unmatched /api routes
-app.all('/api/*', (req, res) => {
-  res.status(404).json({ error: "API_ENDPOINT_NOT_FOUND", path: req.originalUrl });
-});
-
-// 5. STATIC FILES & SPA SERVING
-const projectRoot = process.cwd();
-app.use(express.static(projectRoot));
-
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: "API Route Not Found" });
-  }
-  res.sendFile(path.join(projectRoot, 'index.html'));
-});
-
-// Support for local execution
+// Local Development Support
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log(`NEO SERVER [DUMMY_MODE: ${SIMULATION_MODE}] running on port ${port}`));
+  app.listen(port, () => console.log(`NEO Fresh Server on http://localhost:${port}`));
 }
 
 module.exports = app;
