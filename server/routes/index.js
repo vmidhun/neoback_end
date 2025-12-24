@@ -9,6 +9,8 @@ const timeLogController = require('../controllers/timeLogController');
 const adminController = require('../controllers/adminController');
 const reportController = require('../controllers/reportController');
 const leaveController = require('../controllers/leaveController');
+const policyController = require('../controllers/policyController');
+const timesheetController = require('../controllers/timesheetController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -102,6 +104,25 @@ router.get('/leaves/balance/my', verifyToken, leaveController.getMyBalance);
 router.get('/leaves/pending', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), leaveController.getPendingApprovals); // Employee can be a manager
 router.put('/leaves/:id/status', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), leaveController.updateLeaveStatus);
 router.get('/leaves/calendar', verifyToken, leaveController.getTeamCalendar);
+
+// --- HR Policy & Configuration ---
+router.get('/policies/leave-types', verifyToken, policyController.getLeaveTypes);
+router.post('/policies/leave-types', verifyToken, authorize(['Admin', 'HR']), policyController.createLeaveType);
+router.put('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.updateLeaveType);
+router.delete('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.deleteLeaveType);
+
+router.get('/policies/calendars', verifyToken, policyController.getWorkCalendars);
+router.post('/policies/calendars', verifyToken, authorize(['Admin', 'HR']), policyController.createWorkCalendar);
+router.put('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), policyController.updateWorkCalendar);
+router.delete('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), policyController.deleteWorkCalendar);
+
+// --- Project Config Overrides ---
+router.put('/projects/:projectId/timesheet-config', verifyToken, authorize(['Admin', 'Manager']), policyController.updateProjectTimesheetConfig);
+
+// --- Timesheets ---
+router.post('/timesheets/submit', verifyToken, timesheetController.submitTimesheet);
+router.get('/timesheets', verifyToken, timesheetController.getTimesheets);
+router.put('/timesheets/:id/status', verifyToken, authorize(['Admin', 'Manager']), timesheetController.updateTimesheetStatus);
 
 // --- Reports ---
 router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'HR']), reportController.getTimesheetReport);

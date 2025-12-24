@@ -107,7 +107,12 @@ const ClientSchema = new mongoose.Schema({
 const ProjectSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   name: { type: String, required: true },
-  clientId: { type: String, ref: 'Client', required: true }
+  clientId: { type: String, ref: 'Client', required: true },
+  workCalendarId: { type: String, ref: 'WorkCalendar' },
+  timesheetConfig: {
+    submissionFrequency: { type: String, enum: ['Weekly', 'Bi-Weekly', 'Monthly'], default: 'Weekly' },
+    requireClientApproval: { type: Boolean, default: false }
+  }
 }, { timestamps: true, collection: 'projects' });
 
 const JobSchema = new mongoose.Schema({
@@ -167,6 +172,34 @@ const ModuleConfigSchema = new mongoose.Schema({
   enabled: { type: Boolean, default: true }
 }, { timestamps: true, collection: 'module_configs' });
 
+const LeaveTypeSchema = new mongoose.Schema({
+  _id: { type: String, required: true }, // slug, e.g., 'annual-leave'
+  name: { type: String, required: true },
+  description: { type: String },
+  annualQuota: { type: Number, default: 0 },
+  isPaid: { type: Boolean, default: true },
+  color: { type: String, default: '#00AEEF' }
+}, { timestamps: true, collection: 'leave_types' });
+
+const WorkCalendarSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  name: { type: String, required: true },
+  workingDays: [{ type: Number }], // 0=Sun, 1=Mon, ..., 6=Sat
+  holidayIds: [{ type: String, ref: 'Holiday' }],
+  timezone: { type: String, default: 'UTC' }
+}, { timestamps: true, collection: 'work_calendars' });
+
+const TimesheetSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  userId: { type: String, ref: 'User', required: true },
+  periodStartDate: { type: Date, required: true },
+  periodEndDate: { type: Date, required: true },
+  status: { type: String, enum: ['Draft', 'Submitted', 'Approved', 'Rejected'], default: 'Draft' },
+  approverId: { type: String, ref: 'User' },
+  timeLogs: [{ type: String, ref: 'TimeLog' }],
+  rejectionReason: { type: String }
+}, { timestamps: true, collection: 'timesheets' });
+
 const AnnouncementSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   title: { type: String, required: true },
@@ -204,6 +237,9 @@ const ModuleConfig = mongoose.models.ModuleConfig || mongoose.model('ModuleConfi
 const Announcement = mongoose.models.Announcement || mongoose.model('Announcement', AnnouncementSchema);
 const Holiday = mongoose.models.Holiday || mongoose.model('Holiday', HolidaySchema);
 const Attendance = mongoose.models.Attendance || mongoose.model('Attendance', AttendanceSchema);
+const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', LeaveTypeSchema);
+const WorkCalendar = mongoose.models.WorkCalendar || mongoose.model('WorkCalendar', WorkCalendarSchema);
+const Timesheet = mongoose.models.Timesheet || mongoose.model('Timesheet', TimesheetSchema);
 
 const db = {
   mongoose,
@@ -220,7 +256,10 @@ const db = {
   ModuleConfig,
   Announcement,
   Holiday,
-  Attendance
+  Attendance,
+  LeaveType,
+  WorkCalendar,
+  Timesheet
 };
 
 db.seed = async (force = false) => {
@@ -235,89 +274,44 @@ db.seed = async (force = false) => {
         await Promise.all(Object.values(mongoose.models).map(m => m.deleteMany({})));
     }
 
-    // Teams
-    await Team.findOneAndUpdate({ _id: "team_alpha" }, { name: "Alpha Squad" }, { upsert: true });
+    const fs = require('fs');
+    const path = require('path');
+    const seedDir = path.join(__dirname, '../seed_data');
 
-    // Users
-    // Users
-    let userData = [];
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      const seedPath = path.join(__dirname, '../seed_data/users_seed.json');
-      if (fs.existsSync(seedPath)) {
-        console.log("Loading users from seed file:", seedPath);
-        userData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-      } else {
-        console.log("Seed file not found, skipping user update.");
+    const loadData = (file) => {
+      try {
+        const p = path.join(seedDir, file);
+        if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+      } catch (e) { console.error(`Error reading ${file}`, e); }
+      return null;
+    };
+
+    const seedModel = async (Model, fileName, idField = '_id') => {
+      const data = loadData(fileName);
+      if (data && data.length > 0) {
+        console.log(`Seeding ${Model.modelName} from ${fileName} (${data.length} records)`);
+        for (const item of data) {
+          await Model.findOneAndUpdate({ [idField]: item[idField] }, item, { upsert: true });
+        }
       }
-    } catch (e) {
-      console.error("Error reading seed file:", e);
-    }
+    };
 
-    if (userData.length === 0) {
-      // Fallback or empty
-      userData = [
-        { _id: "sam", name: "Sam Thomas", email: "sam@neointeraction.com", password: "password", role: "Admin", teamId: "team_alpha" }
-      ];
-    }
-    for (const u of userData) await User.findOneAndUpdate({ _id: u._id }, u, { upsert: true });
-
-    // Leave Balances (Seed for current year 2024)
-    const currentYear = new Date().getFullYear();
-    for (const u of userData) {
-      // We use a composite ID or just update based on userId if we change schema logic, 
-      // but current schema defines _id as String. Let's assume _id is "userId_year" for uniqueness or just "userId" if we only track current year for now.
-      // To be safe with the new Schema which has _id, let's keep _id as userId for simplicity in this demo, 
-      // BUT the schema definition `LeaveBalanceSchema` above expects `_id` and also has a compound index. 
-      // Note: In a real app, _id might be auto-generated ObjectId. 
-      // For this seed, let's stick to _id = userId for the *current* balance record to avoid breaking existing refs if any.
-      await LeaveBalance.findOneAndUpdate(
-        { _id: u._id },
-        {
-          year: currentYear,
-          annual: 12,
-          sick: 5,
-          casual: 2,
-          maternity: 0,
-          paternity: 0,
-          lossOfPay: 0,
-          carriedOver: 0
-        },
-        { upsert: true }
-      );
-    }
-
-    // Clients, Projects, Jobs
-    await Client.findOneAndUpdate({ _id: "cli_1" }, { name: "Innovate Corp" }, { upsert: true });
-    await Client.findOneAndUpdate({ _id: "cli_2" }, { name: "Quantum Solutions" }, { upsert: true });
-    
-    await Project.findOneAndUpdate({ _id: "proj_1" }, { name: "Project Phoenix", clientId: "cli_1" }, { upsert: true });
-    await Project.findOneAndUpdate({ _id: "proj_2" }, { name: "Orion Platform", clientId: "cli_2" }, { upsert: true });
-
-    await Job.findOneAndUpdate({ _id: "job_1" }, { name: "Backend Development", projectId: "proj_1" }, { upsert: true });
-    await Job.findOneAndUpdate({ _id: "job_2" }, { name: "UI/UX Design", projectId: "proj_1" }, { upsert: true });
-    await Job.findOneAndUpdate({ _id: "job_3" }, { name: "Database Optimization", projectId: "proj_2" }, { upsert: true });
-    
-    // Tasks
-    const tasksData = [
-      { _id: "task_1", name: "Implement user authentication", jobId: "job_1", allocatedHours: 8, status: "To Do", assignedBy: "Vanessa Lobo" },
-      { _id: "task_2", name: "Design dashboard wireframes", jobId: "job_2", allocatedHours: 6, status: "In Progress", assignedBy: "Vanessa Lobo" },
-      { _id: "task_3", name: "Schema Migration", jobId: "job_3", allocatedHours: 4, status: "Completed", assignedBy: "Vanessa Lobo" }
-    ];
-    for (const t of tasksData) await Task.findOneAndUpdate({ _id: t._id }, t, { upsert: true });
-
-    // Time Logs
-    await TimeLog.findOneAndUpdate({ _id: "log_1" }, { taskId: "task_1", userId: "shameer", loggedHours: 2.5, notes: "Initial setup", date: new Date() }, { upsert: true });
-
-    // Config
-    const configs = ["Time & Attendance", "Leave Management", "Payroll Integration"];
-    for (const c of configs) await ModuleConfig.findOneAndUpdate({ _id: c }, { enabled: c !== "Payroll Integration" }, { upsert: true });
-
-    // Announcements & Holidays (for the monitor counts)
-    await Announcement.findOneAndUpdate({ _id: "ann_1" }, { title: "New Policy", content: "Work from home", authorId: "sam" }, { upsert: true });
-    await Holiday.findOneAndUpdate({ _id: "hol_1" }, { name: "New Year", date: new Date("2024-01-01") }, { upsert: true });
-    await Attendance.findOneAndUpdate({ _id: "att_1" }, { userId: "shameer", checkIn: new Date() }, { upsert: true });
+    await seedModel(Team, 'teams_seed.json');
+    await seedModel(User, 'users_seed.json');
+    await seedModel(Client, 'clients_seed.json');
+    await seedModel(Project, 'projects_seed.json');
+    await seedModel(Job, 'jobs_seed.json');
+    await seedModel(Task, 'tasks_seed.json');
+    await seedModel(TimeLog, 'timelogs_seed.json');
+    await seedModel(LeaveBalance, 'leave_balances_seed.json');
+    await seedModel(LeaveRequest, 'leave_requests_seed.json');
+    await seedModel(ModuleConfig, 'module_configs_seed.json');
+    await seedModel(Announcement, 'announcements_seed.json');
+    await seedModel(Holiday, 'holidays_seed.json');
+    await seedModel(Attendance, 'attendance_seed.json');
+    await seedModel(LeaveType, 'leave_types_seed.json');
+    await seedModel(WorkCalendar, 'work_calendars_seed.json');
+    await seedModel(Timesheet, 'timesheets_seed.json');
 
     console.log("Database seeded successfully.");
   } catch (error) {

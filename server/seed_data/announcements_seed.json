@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "ann_1",
+    "__v": 0,
+    "authorId": "sam",
+    "content": "Work from home",
+    "createdAt": "2025-12-23T19:04:34.063Z",
+    "priority": "Medium",
+    "title": "New Policy",
+    "updatedAt": "2025-12-23T19:04:34.063Z"
+  }
+]

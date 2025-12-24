@@ -1,0 +1,23 @@
+[
+  {
+    "_id": "Time & Attendance",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:33.463Z",
+    "enabled": true,
+    "updatedAt": "2025-12-23T19:04:33.463Z"
+  },
+  {
+    "_id": "Leave Management",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:33.663Z",
+    "enabled": true,
+    "updatedAt": "2025-12-23T19:04:33.663Z"
+  },
+  {
+    "_id": "Payroll Integration",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:33.863Z",
+    "enabled": false,
+    "updatedAt": "2025-12-23T19:04:33.863Z"
+  }
+]

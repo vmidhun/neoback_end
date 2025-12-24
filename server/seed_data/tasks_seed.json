@@ -1,0 +1,35 @@
+[
+  {
+    "_id": "task_1",
+    "__v": 0,
+    "allocatedHours": 8,
+    "assignedBy": "Vanessa Lobo",
+    "createdAt": "2025-12-23T19:04:32.664Z",
+    "jobId": "job_1",
+    "name": "Implement user authentication",
+    "status": "To Do",
+    "updatedAt": "2025-12-23T19:04:32.664Z"
+  },
+  {
+    "_id": "task_2",
+    "__v": 0,
+    "allocatedHours": 6,
+    "assignedBy": "Vanessa Lobo",
+    "createdAt": "2025-12-23T19:04:32.864Z",
+    "jobId": "job_2",
+    "name": "Design dashboard wireframes",
+    "status": "In Progress",
+    "updatedAt": "2025-12-23T19:04:32.864Z"
+  },
+  {
+    "_id": "task_3",
+    "__v": 0,
+    "allocatedHours": 4,
+    "assignedBy": "Vanessa Lobo",
+    "createdAt": "2025-12-23T19:04:33.064Z",
+    "jobId": "job_3",
+    "name": "Schema Migration",
+    "status": "Completed",
+    "updatedAt": "2025-12-23T19:04:33.064Z"
+  }
+]

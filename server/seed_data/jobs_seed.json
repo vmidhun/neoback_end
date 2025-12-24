@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "job_1",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:32.064Z",
+    "name": "Backend Development",
+    "projectId": "proj_1",
+    "updatedAt": "2025-12-23T19:04:32.064Z"
+  },
+  {
+    "_id": "job_2",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:32.264Z",
+    "name": "UI/UX Design",
+    "projectId": "proj_1",
+    "updatedAt": "2025-12-23T19:04:32.264Z"
+  },
+  {
+    "_id": "job_3",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:32.463Z",
+    "name": "Database Optimization",
+    "projectId": "proj_2",
+    "updatedAt": "2025-12-23T19:04:32.463Z"
+  }
+]

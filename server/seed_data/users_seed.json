@@ -1,338 +1,216 @@
 [
   {
     "_id": "sam",
-    "name": "Sam Thomas",
-    "email": "sam@neointeraction.com",
-    "password": "password",
-    "role": "Admin",
-    "designation": "UX Director",
-    "hierarchyLevel": 1,
-    "reportingManagerId": null,
+    "__v": 0,
     "avatarUrl": "/team/sam.jpeg",
+    "createdAt": "2025-12-23T19:04:25.651Z",
+    "designation": "UX Director",
+    "email": "sam@neointeraction.com",
+    "hierarchyLevel": 1,
+    "name": "Sam Thomas",
+    "password": "password",
+    "reportingManagerId": null,
+    "role": "Admin",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "sam@neointeraction.com",
-      "mobileNumber": "9446565744"
-    },
-    "employmentDetails": {
-      "empId": "NI001",
-      "officialDesignation": "Operations/CEO",
-      "doj": "2008-06-01"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:25.651Z"
   },
   {
     "_id": "midhun",
-    "name": "Midhun V Manikkath",
-    "email": "midhun@neointeraction.com",
-    "password": "password",
-    "role": "Admin",
-    "designation": "Project Lead",
-    "hierarchyLevel": 2,
-    "reportingManagerId": "sam",
+    "__v": 0,
     "avatarUrl": "/team/midhun.jpeg",
+    "createdAt": "2025-12-23T19:04:25.851Z",
+    "designation": "Project Lead",
+    "email": "midhun@neointeraction.com",
+    "hierarchyLevel": 2,
+    "name": "Midhun M",
+    "password": "password",
+    "reportingManagerId": "sam",
+    "role": "Admin",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "vmidhun@gmail.com",
-      "mobileNumber": "9972151617"
-    },
-    "employmentDetails": {
-      "empId": "NI011",
-      "officialDesignation": "Project Lead",
-      "doj": "2020-01-01"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:25.851Z"
   },
   {
     "_id": "shameer",
-    "name": "Muhammed Shameer M",
-    "email": "shameer@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "UI Lead",
-    "hierarchyLevel": 2,
-    "reportingManagerId": "sam",
+    "__v": 0,
     "avatarUrl": "/team/shameer.jpeg",
+    "createdAt": "2025-12-23T19:04:26.051Z",
+    "designation": "UI Lead",
+    "email": "shameer@neointeraction.com",
+    "hierarchyLevel": 2,
+    "name": "Shameer M",
+    "password": "password",
+    "reportingManagerId": "sam",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "mshameer237@gmail.com",
-      "mobileNumber": "8884771092"
-    },
-    "employmentDetails": {
-      "empId": "NI004",
-      "officialDesignation": "UI Lead",
-      "doj": "2016-05-23"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:26.051Z"
   },
   {
     "_id": "vanessa",
-    "name": "Vanessa Janice Lobo",
-    "email": "vanessa@neointeraction.com",
-    "password": "password",
-    "role": "Manager",
-    "designation": "Sr.UX Designer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "midhun",
+    "__v": 0,
     "avatarUrl": "/team/vanessa.jpeg",
+    "createdAt": "2025-12-23T19:04:26.251Z",
+    "designation": "Senior UX UI Designer",
+    "email": "vanessa@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Vanessa Lobo",
+    "password": "password",
+    "reportingManagerId": "sam",
+    "role": "Scrum Master",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "vanessa.lobo93@gmail.com",
-      "mobileNumber": "9561436255"
-    },
+    "updatedAt": "2025-12-24T05:25:56.954Z",
+    "emergencyContacts": [],
     "employmentDetails": {
-      "empId": "NI048",
-      "officialDesignation": "UX/UI Designer",
-      "doj": "2022-10-17"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+      "employmentStatus": "Active"
+    }
   },
   {
     "_id": "sindhu",
-    "name": "Sindhu K",
-    "email": "sindhu@neointeraction.com",
-    "password": "hr",
-    "role": "HR",
-    "designation": "HR Executive",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "sam",
+    "__v": 0,
     "avatarUrl": "/team/sindhu.jpeg",
+    "createdAt": "2025-12-23T19:04:26.451Z",
+    "designation": "HR Executive",
+    "email": "sindhu@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Sindhu K",
+    "password": "hr",
+    "reportingManagerId": "sam",
+    "role": "HR",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "k.sindhu.1585.sk@gmail.com",
-      "mobileNumber": "9535866991"
-    },
-    "employmentDetails": {
-      "empId": "NI057",
-      "officialDesignation": "HR Executive",
-      "doj": "2023-06-12"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:26.451Z"
   },
   {
     "_id": "jishnu",
-    "name": "Jishnu Krishnan",
-    "email": "jishnu@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Sr.UI Developer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "shameer",
+    "__v": 0,
     "avatarUrl": "/team/jishnu.jpeg",
+    "createdAt": "2025-12-23T19:04:26.651Z",
+    "designation": "UI Developer",
+    "email": "jishnu@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Jishnu Krishnan",
+    "password": "password",
+    "reportingManagerId": "shameer",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "jishnukrishnan30@gmail.com",
-      "mobileNumber": "8943032211"
-    },
-    "employmentDetails": {
-      "empId": "NI006",
-      "officialDesignation": "Sr.UI Developer",
-      "doj": "2021-05-10"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:26.651Z"
   },
   {
     "_id": "sahla",
-    "name": "Sahla Muhammed Feroz",
-    "email": "sahla@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "UX Designer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "vanessa",
+    "__v": 0,
     "avatarUrl": "/team/sahla.jpeg",
+    "createdAt": "2025-12-23T19:04:26.851Z",
+    "designation": "UX Designer",
+    "email": "sahla@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Sahla Feroc",
+    "password": "password",
+    "reportingManagerId": "vanessa",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "sahlaferoz@gmail.com",
-      "mobileNumber": "9895166661"
-    },
-    "employmentDetails": {
-      "empId": "NI034",
-      "officialDesignation": "Jr. UX/UI Designer",
-      "doj": "2022-08-01"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:26.851Z"
   },
   {
     "_id": "talha",
-    "name": "Mohammed Talha Shaikh",
-    "email": "talha@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "UI Developer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "shameer",
+    "__v": 0,
     "avatarUrl": "/team/talha.jpeg",
+    "createdAt": "2025-12-23T19:04:27.051Z",
+    "designation": "UI Developer",
+    "email": "talha@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Talha Shaikh",
+    "password": "password",
+    "reportingManagerId": "shameer",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "talhashaikh6366@gmail.com",
-      "mobileNumber": "6366217943"
-    },
-    "employmentDetails": {
-      "empId": "NI050",
-      "officialDesignation": "Front End Web Developer",
-      "doj": "2023-02-06"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:27.051Z"
   },
   {
     "_id": "liya",
-    "name": "Liya Theresa Siby",
-    "email": "liya@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Digital Marketing executive",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "midhun",
+    "__v": 0,
     "avatarUrl": "/team/liya.jpeg",
+    "createdAt": "2025-12-23T19:04:27.251Z",
+    "designation": "Digital Marketing Executive",
+    "email": "liya@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Liya Theresa Siby",
+    "password": "password",
+    "reportingManagerId": "midhun",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "liyatheresa12@gmail.com",
-      "mobileNumber": "8075785670"
-    },
-    "employmentDetails": {
-      "empId": "NI051",
-      "officialDesignation": "Jr.UI Developer/Jr.Marketing executive",
-      "doj": "2023-02-20"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:27.251Z"
   },
   {
     "_id": "sangram",
-    "name": "Sangram Rajendra Patil",
-    "email": "sangram@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "UI Developer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "shameer",
+    "__v": 0,
     "avatarUrl": "/team/sangram.jpeg",
+    "createdAt": "2025-12-23T19:04:27.451Z",
+    "designation": "UI Developer",
+    "email": "sangram@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Sangram Patil",
+    "password": "password",
+    "reportingManagerId": "shameer",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "sangrampatil098@gmail.com",
-      "mobileNumber": "8147402343"
-    },
-    "employmentDetails": {
-      "empId": "NI052",
-      "officialDesignation": "Front End Web Developer",
-      "doj": "2023-03-13"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:27.451Z"
   },
   {
     "_id": "veena",
-    "name": "Veena Varghese Perumattathu",
-    "email": "veena@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Jr.UX/UI Designer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "vanessa",
+    "__v": 0,
     "avatarUrl": "/team/veena.jpeg",
+    "createdAt": "2025-12-23T19:04:27.651Z",
+    "designation": "UX Designer",
+    "email": "veena@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Veena Varghese",
+    "password": "password",
+    "reportingManagerId": "vanessa",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "veenavarghesep@gmail.com",
-      "mobileNumber": "9113834234"
-    },
-    "employmentDetails": {
-      "empId": "NI054",
-      "officialDesignation": "Jr.UX/UI Designer",
-      "doj": "2023-06-01"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:27.651Z"
   },
   {
     "_id": "ashutosh",
-    "name": "Ashutosh Kumar Shakya",
-    "email": "ashutosh@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Graphic Designer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "vanessa",
+    "__v": 0,
     "avatarUrl": "/team/ashutosh.jpeg",
+    "createdAt": "2025-12-23T19:04:27.851Z",
+    "designation": "UX Designer",
+    "email": "ashutosh@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Ashutosh Shakya",
+    "password": "password",
+    "reportingManagerId": "vanessa",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "ashutoshkya1@gmail.com",
-      "mobileNumber": "9719211189"
-    },
-    "employmentDetails": {
-      "empId": "NI032",
-      "officialDesignation": "Graphic Designer",
-      "doj": "2022-05-16"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:27.851Z"
   },
   {
     "_id": "sakshi",
-    "name": "Sakshi Veeresh Patil",
-    "email": "sakshi@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Jr.UX/UI Designer",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "vanessa",
+    "__v": 0,
     "avatarUrl": "/team/sakshi.jpeg",
+    "createdAt": "2025-12-23T19:04:28.051Z",
+    "designation": "UX Designer",
+    "email": "sakshi@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Sakshi Patil",
+    "password": "password",
+    "reportingManagerId": "vanessa",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "sakshipatil1401@gmail.com",
-      "mobileNumber": "9535536973"
-    },
-    "employmentDetails": {
-      "empId": "NI061",
-      "officialDesignation": "Jr.UX/UI Designer",
-      "doj": "2024-01-08"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:28.051Z"
   },
   {
     "_id": "rishi",
-    "name": "Rishi C",
-    "email": "rishi@neointeraction.com",
-    "password": "password",
-    "role": "Employee",
-    "designation": "Digitial Marketing executive",
-    "hierarchyLevel": 3,
-    "reportingManagerId": "midhun",
+    "__v": 0,
     "avatarUrl": "/team/rishi.jpeg",
+    "createdAt": "2025-12-23T19:04:28.253Z",
+    "designation": "Digital Marketing Executive",
+    "email": "rishi@neointeraction.com",
+    "hierarchyLevel": 3,
+    "name": "Rishi C",
+    "password": "password",
+    "reportingManagerId": "midhun",
+    "role": "Employee",
     "teamId": "team_alpha",
-    "personalInfo": {
-      "personalEmail": "rishichandran777@gmail.com",
-      "mobileNumber": "9048680650"
-    },
-    "employmentDetails": {
-      "empId": "NI064",
-      "officialDesignation": "Digital Marketing executive",
-      "doj": "2024-08-26"
-    },
-    "financialDetails": {},
-    "documents": {},
-    "emergencyContacts": []
+    "updatedAt": "2025-12-23T19:04:28.253Z"
   }
 ]

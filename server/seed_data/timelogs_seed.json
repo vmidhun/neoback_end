@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "log_1",
+    "__v": 0,
+    "createdAt": "2025-12-23T19:04:33.263Z",
+    "date": "2025-12-23T19:04:33.263Z",
+    "loggedHours": 2.5,
+    "notes": "Initial setup",
+    "taskId": "task_1",
+    "updatedAt": "2025-12-23T19:04:33.263Z",
+    "userId": "shameer"
+  }
+]
