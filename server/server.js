@@ -11,6 +11,7 @@ const startTime = Date.now();
 // 1. GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public')); // Serve static files from 'public' directory
 
 // Monitoring
 app.use((req, res, next) => {

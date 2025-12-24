@@ -39,12 +39,59 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Admin', 'HR', 'Employee', 'Scrum Master'], default: 'Employee' },
+  role: { type: String, enum: ['Admin', 'HR', 'Employee', 'Manager'], default: 'Employee' },
   avatarUrl: { type: String },
   teamId: { type: String, ref: 'Team' },
   designation: { type: String },
   hierarchyLevel: { type: Number, default: 3 }, // 1: Director, 2: Lead/Manager, 3: Senior/Mid/Exec
-  reportingManagerId: { type: String, ref: 'User' }
+  reportingManagerId: { type: String, ref: 'User' },
+
+  // HRMS Sections
+  personalInfo: {
+    dob: Date,
+    gender: { type: String },
+    maritalStatus: { type: String },
+    bloodGroup: { type: String },
+    nationality: { type: String },
+    personalEmail: { type: String },
+    mobileNumber: { type: String },
+    secondaryNumber: { type: String },
+    currentAddress: { type: String },
+    permanentAddress: { type: String },
+    linkedinProfile: { type: String }
+  },
+  employmentDetails: {
+    empId: { type: String }, // e.g., NI001
+    doj: Date,
+    confirmationDate: Date,
+    employmentType: { type: String, enum: ['Full-time', 'Contract', 'Intern'] },
+    employmentStatus: { type: String, enum: ['Active', 'Notice Period', 'Terminated', 'Sabbatical'], default: 'Active' },
+    officialDesignation: { type: String }, // From Payslip
+    workLocation: { type: String }
+  },
+  financialDetails: {
+    bankName: { type: String },
+    accountHolderName: { type: String },
+    accountNumber: { type: String },
+    ifscCode: { type: String },
+    panCardNumber: { type: String },
+    aadhaarNumber: { type: String },
+    uanNumber: { type: String },
+    pfAccountNumber: { type: String }
+  },
+  documents: {
+    resumeUrl: { type: String },
+    offerLetterUrl: { type: String },
+    appointmentLetterUrl: { type: String },
+    idProofUrl: { type: String },
+    photoUrl: { type: String }
+  },
+  emergencyContacts: [{
+    name: { type: String },
+    relationship: { type: String },
+    phone: { type: String },
+    email: { type: String }
+  }]
 }, { timestamps: true, collection: 'users' });
 
 const TeamSchema = new mongoose.Schema({
@@ -88,11 +135,32 @@ const TimeLogSchema = new mongoose.Schema({
 }, { timestamps: true, collection: 'timelogs' });
 
 const LeaveBalanceSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
+  _id: { type: String, required: true }, // usually userId
+  year: { type: Number, required: true },
   annual: { type: Number, default: 0 },
   sick: { type: Number, default: 0 },
-  casual: { type: Number, default: 0 }
+  casual: { type: Number, default: 0 },
+  maternity: { type: Number, default: 0 },
+  paternity: { type: Number, default: 0 },
+  lossOfPay: { type: Number, default: 0 }, // Track how many LOP days taken
+  carriedOver: { type: Number, default: 0 }
 }, { timestamps: true, collection: 'leave_balances' });
+// Compound index to ensure one balance record per user per year
+LeaveBalanceSchema.index({ _id: 1, year: 1 }, { unique: true });
+
+const LeaveRequestSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  userId: { type: String, ref: 'User', required: true },
+  leaveType: { type: String, enum: ['Annual', 'Sick', 'Casual', 'Maternity', 'Paternity', 'LossOfPay'], required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  daysCount: { type: Number, required: true },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'], default: 'Pending' },
+  approverId: { type: String, ref: 'User' },
+  rejectionReason: { type: String },
+  isLossOfPay: { type: Boolean, default: false } // Flag if this specific request is LOP
+}, { timestamps: true, collection: 'leave_requests' });
 
 const ModuleConfigSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -131,6 +199,7 @@ const Job = mongoose.models.Job || mongoose.model('Job', JobSchema);
 const Task = mongoose.models.Task || mongoose.model('Task', TaskSchema);
 const TimeLog = mongoose.models.TimeLog || mongoose.model('TimeLog', TimeLogSchema);
 const LeaveBalance = mongoose.models.LeaveBalance || mongoose.model('LeaveBalance', LeaveBalanceSchema);
+const LeaveRequest = mongoose.models.LeaveRequest || mongoose.model('LeaveRequest', LeaveRequestSchema);
 const ModuleConfig = mongoose.models.ModuleConfig || mongoose.model('ModuleConfig', ModuleConfigSchema);
 const Announcement = mongoose.models.Announcement || mongoose.model('Announcement', AnnouncementSchema);
 const Holiday = mongoose.models.Holiday || mongoose.model('Holiday', HolidaySchema);
@@ -147,6 +216,7 @@ const db = {
   Task,
   TimeLog,
   LeaveBalance,
+  LeaveRequest,
   ModuleConfig,
   Announcement,
   Holiday,
@@ -193,9 +263,29 @@ db.seed = async (force = false) => {
     }
     for (const u of userData) await User.findOneAndUpdate({ _id: u._id }, u, { upsert: true });
 
-    // Leave Balances
+    // Leave Balances (Seed for current year 2024)
+    const currentYear = new Date().getFullYear();
     for (const u of userData) {
-        await LeaveBalance.findOneAndUpdate({ _id: u._id }, { annual: 12, sick: 5, casual: 2 }, { upsert: true });
+      // We use a composite ID or just update based on userId if we change schema logic, 
+      // but current schema defines _id as String. Let's assume _id is "userId_year" for uniqueness or just "userId" if we only track current year for now.
+      // To be safe with the new Schema which has _id, let's keep _id as userId for simplicity in this demo, 
+      // BUT the schema definition `LeaveBalanceSchema` above expects `_id` and also has a compound index. 
+      // Note: In a real app, _id might be auto-generated ObjectId. 
+      // For this seed, let's stick to _id = userId for the *current* balance record to avoid breaking existing refs if any.
+      await LeaveBalance.findOneAndUpdate(
+        { _id: u._id },
+        {
+          year: currentYear,
+          annual: 12,
+          sick: 5,
+          casual: 2,
+          maternity: 0,
+          paternity: 0,
+          lossOfPay: 0,
+          carriedOver: 0
+        },
+        { upsert: true }
+      );
     }
 
     // Clients, Projects, Jobs

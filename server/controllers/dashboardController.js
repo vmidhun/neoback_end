@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 exports.getEmployeeDashboard = async (req, res) => {
   const { userId } = req.params;
   
-  if (req.user._id !== userId && !['Admin', 'HR', 'Scrum Master'].includes(req.user.role)) {
+  if (req.user._id !== userId && !['Admin', 'HR', 'Manager'].includes(req.user.role)) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
