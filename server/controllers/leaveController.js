@@ -19,7 +19,16 @@ const calculateDays = (start, end) => {
 
 exports.applyLeave = async (req, res) => {
     try {
-        const { leaveType, startDate, endDate, reason } = req.body;
+        const {
+            leaveType,
+            startDate,
+            endDate,
+            reason,
+            isEmergency,
+            emergencyReportedVia,
+            emergencyReportedAt,
+            attachments
+        } = req.body;
         const userId = req.user.id;
         
         // 1. Calculate duration
@@ -51,11 +60,6 @@ exports.applyLeave = async (req, res) => {
         if(['annual', 'sick', 'casual'].includes(typeKey)) {
              if (balance[typeKey] < daysCount) {
                  isLossOfPay = true;
-                 // Ideally we might split the request: 2 days paid, 1 day unpaid. 
-                 // For MVP, if insufficient, warn user or auto-mark as LOP. 
-                 // Here let's just flag it. The logic "Based on payroll" implies strict accounting.
-                 // We will allow negative balance or separate LOP accounting?
-                 // Let's implement strict: if not enough, it is LOP.
              }
         } else if (typeKey === 'lossofpay') {
             isLossOfPay = true;
@@ -71,7 +75,11 @@ exports.applyLeave = async (req, res) => {
             daysCount,
             reason,
             status: 'Pending', 
-            isLossOfPay
+            isLossOfPay,
+            isEmergency,
+            emergencyReportedVia,
+            emergencyReportedAt,
+            attachments
         });
 
         await newRequest.save();

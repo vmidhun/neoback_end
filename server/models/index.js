@@ -153,10 +153,11 @@ const LeaveBalanceSchema = new mongoose.Schema({
 // Compound index to ensure one balance record per user per year
 LeaveBalanceSchema.index({ _id: 1, year: 1 }, { unique: true });
 
+
 const LeaveRequestSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   userId: { type: String, ref: 'User', required: true },
-  leaveType: { type: String, enum: ['Annual', 'Sick', 'Casual', 'Maternity', 'Paternity', 'LossOfPay'], required: true },
+  leaveType: { type: String, required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   daysCount: { type: Number, required: true },
@@ -164,7 +165,12 @@ const LeaveRequestSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'], default: 'Pending' },
   approverId: { type: String, ref: 'User' },
   rejectionReason: { type: String },
-  isLossOfPay: { type: Boolean, default: false } // Flag if this specific request is LOP
+  isLossOfPay: { type: Boolean, default: false },
+  // Emergency fields
+  isEmergency: { type: Boolean, default: false },
+  emergencyReportedVia: { type: String, enum: ['Call', 'Whatsapp/SMS', 'Email', 'None'] },
+  emergencyReportedAt: { type: String }, // storing as string time "09:30"
+  attachments: [{ type: String }] // URLs
 }, { timestamps: true, collection: 'leave_requests' });
 
 const ModuleConfigSchema = new mongoose.Schema({
@@ -178,7 +184,11 @@ const LeaveTypeSchema = new mongoose.Schema({
   description: { type: String },
   annualQuota: { type: Number, default: 0 },
   isPaid: { type: Boolean, default: true },
-  color: { type: String, default: '#00AEEF' }
+  color: { type: String, default: '#00AEEF' },
+  // Extended fields
+  accrualRate: { type: String, default: 'Yearly' },
+  maxContinuousDays: { type: Number, default: 5 },
+  encashmentAllowed: { type: Boolean, default: false }
 }, { timestamps: true, collection: 'leave_types' });
 
 const WorkCalendarSchema = new mongoose.Schema({
@@ -186,8 +196,27 @@ const WorkCalendarSchema = new mongoose.Schema({
   name: { type: String, required: true },
   workingDays: [{ type: Number }], // 0=Sun, 1=Mon, ..., 6=Sat
   holidayIds: [{ type: String, ref: 'Holiday' }],
-  timezone: { type: String, default: 'UTC' }
+  timezone: { type: String, default: 'UTC' },
+  // Linked Entity Override
+  linkedEntity: {
+    type: { type: String, enum: ['Client', 'Project'] },
+    id: { type: String },
+    name: { type: String }
+  }
 }, { timestamps: true, collection: 'work_calendars' });
+
+const StandupSessionSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  date: { type: Date, required: true },
+  teamId: { type: String, ref: 'Team', required: true },
+  createdBy: { type: String, ref: 'User', required: true },
+  tasks: [{
+    taskId: { type: String, ref: 'Task' },
+    employeeId: { type: String, ref: 'User' },
+    status: { type: String, enum: ['To Do', 'In Progress', 'Completed', 'Blocked'] },
+    notes: { type: String }
+  }]
+}, { timestamps: true, collection: 'standup_sessions' });
 
 const TimesheetSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -240,6 +269,7 @@ const Attendance = mongoose.models.Attendance || mongoose.model('Attendance', At
 const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', LeaveTypeSchema);
 const WorkCalendar = mongoose.models.WorkCalendar || mongoose.model('WorkCalendar', WorkCalendarSchema);
 const Timesheet = mongoose.models.Timesheet || mongoose.model('Timesheet', TimesheetSchema);
+const StandupSession = mongoose.models.StandupSession || mongoose.model('StandupSession', StandupSessionSchema);
 
 const db = {
   mongoose,
@@ -259,7 +289,8 @@ const db = {
   Attendance,
   LeaveType,
   WorkCalendar,
-  Timesheet
+  Timesheet,
+  StandupSession
 };
 
 db.seed = async (force = false) => {

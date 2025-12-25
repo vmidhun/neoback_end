@@ -1,4 +1,5 @@
-const { LeaveType, WorkCalendar, Timesheet, Project } = require('../models');
+
+const { LeaveType, ModuleConfig } = require('../models');
 
 // --- Leave Types ---
 exports.getLeaveTypes = async (req, res) => {
@@ -6,91 +7,63 @@ exports.getLeaveTypes = async (req, res) => {
     const types = await LeaveType.find();
     res.json(types);
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      res.status(500).json({ message: "Error fetching leave types" });
+    }
 };
 
 exports.createLeaveType = async (req, res) => {
   try {
-    const { name, description, annualQuota, isPaid, color } = req.body;
-    const _id = name.toLowerCase().replace(/ /g, '-');
-    const newType = await LeaveType.create({ _id, name, description, annualQuota, isPaid, color });
-    res.status(201).json(newType);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+      const { name, description, annualQuota, isPaid, color, accrualRate, maxContinuousDays, encashmentAllowed } = req.body;
+
+      // Simple slug generation
+      const _id = name.toLowerCase().replace(/\s+/g, '-');
+
+      const newType = new LeaveType({
+        _id,
+        name,
+        description,
+        annualQuota,
+        isPaid,
+        color,
+        accrualRate,
+        maxContinuousDays,
+        encashmentAllowed
+      });
+
+      await newType.save();
+      res.status(201).json(newType);
+    } catch (err) {
+      res.status(500).json({ message: "Error creating leave type" });
+    }
 };
 
 exports.updateLeaveType = async (req, res) => {
   try {
-    const updated = await LeaveType.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+      const { id } = req.params;
+      const updates = req.body;
+      const type = await LeaveType.findByIdAndUpdate(id, updates, { new: true });
+      res.json(type);
+    } catch (err) {
+      res.status(500).json({ message: "Error updating leave type" });
+    }
 };
 
 exports.deleteLeaveType = async (req, res) => {
   try {
-    await LeaveType.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Leave Type deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      const { id } = req.params;
+      await LeaveType.findByIdAndDelete(id);
+      res.json({ message: "Leave type deleted" });
+    } catch (err) {
+      res.status(500).json({ message: "Error deleting leave type" });
+    }
 };
 
-// --- Work Calendars ---
-exports.getWorkCalendars = async (req, res) => {
-  try {
-    const calendars = await WorkCalendar.find().populate('holidayIds');
-    res.json(calendars);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// --- Module Configs ---
+exports.getDataRetention = async (req, res) => {
+  // Mock response for now, as Schema doesn't have retention fields yet
+  res.json({ retentionYears: 7 });
 };
 
-exports.createWorkCalendar = async (req, res) => {
-  try {
-    const { name, workingDays, holidayIds, timezone } = req.body;
-    const _id = 'cal_' + Date.now();
-    const newCal = await WorkCalendar.create({ _id, name, workingDays, holidayIds, timezone });
-    res.status(201).json(newCal);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-exports.updateWorkCalendar = async (req, res) => {
-  try {
-    const updated = await WorkCalendar.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-exports.deleteWorkCalendar = async (req, res) => {
-  try {
-    await WorkCalendar.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Work Calendar deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// --- Timesheet Config (Project Level) ---
-exports.updateProjectTimesheetConfig = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { workCalendarId, timesheetConfig } = req.body;
-    
-    const updated = await Project.findByIdAndUpdate(
-      projectId, 
-      { workCalendarId, timesheetConfig },
-      { new: true }
-    );
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+exports.updateDataRetention = async (req, res) => {
+  res.json({ message: "Updated" });
 };

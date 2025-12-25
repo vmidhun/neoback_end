@@ -48,10 +48,36 @@ const teams = [
 ];
 
 const leaves = {
-    "emp_1": { annual: 12, sick: 5, casual: 2 },
-    "emp_2": { annual: 15, sick: 2, casual: 5 },
-    "emp_3": { annual: 10, sick: 10, casual: 1 }
+  "emp_1": { annual: 12, sick: 5, casual: 2, maternity: 0, paternity: 0, lossOfPay: 0 },
+  "emp_2": { annual: 15, sick: 2, casual: 5, maternity: 0, paternity: 0, lossOfPay: 0 },
+  "emp_3": { annual: 10, sick: 10, casual: 1, maternity: 0, paternity: 0, lossOfPay: 0 }
 };
+
+const leaveRequests = [
+  {
+    _id: "lr_1",
+    userId: "emp_1",
+    leaveType: "Annual",
+    startDate: "2025-12-28",
+    endDate: "2025-12-30",
+    daysCount: 3,
+    reason: "Year end vacation",
+    status: "Pending",
+    isLossOfPay: false
+  }
+];
+
+const standupSessions = [
+  {
+    id: "su_1",
+    date: "2025-12-24",
+    teamId: "team_alpha",
+    createdBy: "emp_2",
+    tasks: [
+      { taskId: "task_1", employeeId: "emp_1", status: "In Progress" }
+    ]
+  }
+];
 
 module.exports = {
   users,
@@ -62,5 +88,7 @@ module.exports = {
   timeLogs,
   modules,
   teams,
-  leaves
+  leaves,
+  leaveRequests,
+  standupSessions
 };

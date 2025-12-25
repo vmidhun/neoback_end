@@ -105,16 +105,25 @@ router.get('/leaves/pending', verifyToken, authorize(['Admin', 'HR', 'Manager', 
 router.put('/leaves/:id/status', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), leaveController.updateLeaveStatus);
 router.get('/leaves/calendar', verifyToken, leaveController.getTeamCalendar);
 
+const workCalendarController = require('../controllers/workCalendarController');
+const standupController = require('../controllers/standupController');
+
+// ... (existing imports)
+
+// --- Standup Routes ---
+router.get('/standup/daily', verifyToken, standupController.getDailyStandup);
+router.post('/standup/session', verifyToken, standupController.createOrUpdateSession);
+
 // --- HR Policy & Configuration ---
 router.get('/policies/leave-types', verifyToken, policyController.getLeaveTypes);
 router.post('/policies/leave-types', verifyToken, authorize(['Admin', 'HR']), policyController.createLeaveType);
 router.put('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.updateLeaveType);
 router.delete('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.deleteLeaveType);
 
-router.get('/policies/calendars', verifyToken, policyController.getWorkCalendars);
-router.post('/policies/calendars', verifyToken, authorize(['Admin', 'HR']), policyController.createWorkCalendar);
-router.put('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), policyController.updateWorkCalendar);
-router.delete('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), policyController.deleteWorkCalendar);
+router.get('/policies/calendars', verifyToken, workCalendarController.getCalendars);
+router.post('/policies/calendars', verifyToken, authorize(['Admin', 'HR']), workCalendarController.createCalendar);
+router.put('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), workCalendarController.updateCalendar);
+router.delete('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR']), workCalendarController.deleteCalendar);
 
 // --- Project Config Overrides ---
 router.put('/projects/:projectId/timesheet-config', verifyToken, authorize(['Admin', 'Manager']), policyController.updateProjectTimesheetConfig);
