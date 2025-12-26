@@ -43,3 +43,9 @@ exports.getMe = (req, res) => {
     teamId: user.teamId
   });
 };
+
+exports.getCurrentUser = exports.getMe;
+
+exports.logout = (req, res) => {
+  res.json({ message: "Logged out successfully" });
+};

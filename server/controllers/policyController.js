@@ -67,3 +67,17 @@ exports.getDataRetention = async (req, res) => {
 exports.updateDataRetention = async (req, res) => {
   res.json({ message: "Updated" });
 };
+
+// --- Project Config Overrides ---
+const { Project } = require('../models');
+
+exports.updateProjectTimesheetConfig = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const config = req.body; // { submissionFrequency, requireClientApproval }
+    await Project.findByIdAndUpdate(projectId, { timesheetConfig: config }); // or specific fields
+    res.json({ message: "Configuration updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating config" });
+  }
+};

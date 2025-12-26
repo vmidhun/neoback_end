@@ -1,5 +1,14 @@
 [
   {
+    "_id": "superadmin",
+    "name": "Super Admin",
+    "email": "admin@neo.com",
+    "password": "admin",
+    "role": "SuperAdmin",
+    "designation": "System Administrator",
+    "hierarchyLevel": 0
+  },
+  {
     "_id": "sam",
     "__v": 0,
     "avatarUrl": "/team/sam.jpeg",

@@ -43,9 +43,17 @@ router.post('/upload/image', verifyToken, upload.single('image'), (req, res) => 
     res.json({ url: fileUrl });
 });
 
+const tenantController = require('../controllers/tenantController');
+
 // --- Auth ---
 router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
+
+// --- Tenants (SuperAdmin) ---
+router.get('/tenants', verifyToken, authorize(['SuperAdmin']), tenantController.getTenants);
+router.post('/tenants', verifyToken, authorize(['SuperAdmin']), tenantController.createTenant);
+router.put('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantController.updateTenant);
+router.delete('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantController.deleteTenant);
 
 // --- Users ---
 router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), userController.getAllUsers);

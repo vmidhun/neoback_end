@@ -34,12 +34,21 @@ const connectDB = async () => {
 };
 
 // --- Schemas ---
+const TenantSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  name: { type: String, required: true },
+  domain: { type: String },
+  status: { type: String, enum: ['Active', 'Suspended'], default: 'Active' },
+  subscriptionPlan: { type: String, default: 'Free' }
+}, { timestamps: true, collection: 'tenants' });
+
 const UserSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' }, // Multi-tenancy scope
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Admin', 'HR', 'Employee', 'Manager'], default: 'Employee' },
+  role: { type: String, enum: ['SuperAdmin', 'TenantAdmin', 'Admin', 'HR', 'Employee', 'Manager'], default: 'Employee' },
   avatarUrl: { type: String },
   teamId: { type: String, ref: 'Team' },
   designation: { type: String },
@@ -96,6 +105,7 @@ const UserSchema = new mongoose.Schema({
 
 const TeamSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' },
   name: { type: String, required: true }
 }, { timestamps: true, collection: 'teams' });
 
@@ -253,6 +263,7 @@ const AttendanceSchema = new mongoose.Schema({
 }, { timestamps: true, collection: 'attendance' });
 
 // --- Register Models ---
+const Tenant = mongoose.models.Tenant || mongoose.model('Tenant', TenantSchema);
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Team = mongoose.models.Team || mongoose.model('Team', TeamSchema);
 const Client = mongoose.models.Client || mongoose.model('Client', ClientSchema);
@@ -274,6 +285,7 @@ const StandupSession = mongoose.models.StandupSession || mongoose.model('Standup
 const db = {
   mongoose,
   connectDB,
+  Tenant,
   User,
   Team,
   Client,
@@ -296,9 +308,9 @@ const db = {
 db.seed = async (force = false) => {
   try {
     const userCount = await User.countDocuments();
-    if (userCount > 0 && !force) return;
+    // if (userCount > 0 && !force) return; // Allow running to append new data
 
-    console.log("Seeding database...");
+    console.log(`Seeding database... (Force: ${force})`);
     
     // Clear collections if forced
     if (force) {
@@ -322,7 +334,18 @@ db.seed = async (force = false) => {
       if (data && data.length > 0) {
         console.log(`Seeding ${Model.modelName} from ${fileName} (${data.length} records)`);
         for (const item of data) {
-          await Model.findOneAndUpdate({ [idField]: item[idField] }, item, { upsert: true });
+          if (force) {
+            // If forced, we wiped, so just create
+            await Model.create(item).catch(e => console.error(`Error creating ${item[idField]}:`, e.message));
+          } else {
+            // Append only mode: Check if exists
+            const exists = await Model.findOne({ [idField]: item[idField] });
+            if (!exists) {
+              await Model.create(item);
+              console.log(`  + Created new ${Model.modelName}: ${item[idField]}`);
+            }
+            // If exists, do nothing (preserve old data)
+          }
         }
       }
     };
