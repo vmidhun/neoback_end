@@ -15,32 +15,47 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../../public/team');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        // Use original name or timestamp to avoid collisions?
-        // User wants to dump photographs. Let's keep original name but sanitize or use ID if passed?
-        // Let's use timestamp + original name for safety, but user might want cleaner names.
-        // For simple usage: original name.
-        cb(null, Date.now() + '-' + file.originalname);
+const { S3Client } = require('@aws-sdk/client-s3');
+const multerS3 = require('multer-s3');
+const config = require('../config');
+
+// Initialize S3 Client
+const s3 = new S3Client({
+    region: config.AWS.REGION,
+    credentials: {
+        accessKeyId: config.AWS.ACCESS_KEY_ID,
+        secretAccessKey: config.AWS.SECRET_ACCESS_KEY
     }
 });
-const upload = multer({ storage });
+
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: config.AWS.BUCKET_NAME,
+        metadata: function (req, file, cb) {
+            cb(null, { fieldName: file.fieldname });
+        },
+        key: function (req, file, cb) {
+            // Folder structure: neon/[tenantId]/team/[filename]
+            const rootFolder = config.AWS.FOLDER || 'neon';
+            const tenantId = (req.user && req.user.tenantId) ? req.user.tenantId : 'common';
+            // Determine subfolder based on route or field? For now, this route is mostly for team/avatars.
+            const subfolder = 'team';
+
+            const filename = Date.now().toString() + '-' + file.originalname;
+            cb(null, `${rootFolder}/${tenantId}/${subfolder}/${filename}`);
+        }
+    })
+});
 
 const { verifyToken, authorize } = require('../middleware/auth');
 
 // --- Uploads ---
+// --- Uploads ---
 router.post('/upload/image', verifyToken, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    // Return the URL relative to server root
-    const fileUrl = `/team/${req.file.filename}`;
-    res.json({ url: fileUrl });
+    // Multer-S3 populates req.file.location with the S3 URL
+    res.json({ url: req.file.location });
 });
 
 const tenantController = require('../controllers/tenantController');
@@ -74,6 +89,12 @@ router.get('/super/tenants/:tenantId/subscription', verifyToken, authorize(['Sup
 router.post('/super/tenants/:tenantId/subscription', verifyToken, authorize(['SuperAdmin']), superAdminController.updateSubscription);
 
 router.get('/super/metrics/overview', verifyToken, authorize(['SuperAdmin']), superAdminController.getMetrics);
+
+// --- Tenant Admin Management (Super Admin) ---
+router.get('/super/tenants/:tenantId/admin', verifyToken, authorize(['SuperAdmin']), tenantController.getTenantAdmin);
+router.put('/super/tenants/:tenantId/admin', verifyToken, authorize(['SuperAdmin']), tenantController.updateTenantAdmin);
+router.put('/super/tenants/:tenantId/admin/password', verifyToken, authorize(['SuperAdmin']), tenantController.resetTenantAdminPassword);
+
 
 // --- Tenant Entitlements ---
 router.get('/tenant/entitlements', verifyToken, entitlementController.getMyEntitlements);

@@ -22,5 +22,12 @@ module.exports = {
   MONGODB_URI: getMongoUri(),
   DB: {
     NAME: process.env.DB_NAME || DEFAULT_DB_NAME
+  },
+  AWS: {
+    ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    REGION: process.env.AWS_REGION,
+    BUCKET_NAME: process.env.S3_BUCKET_NAME,
+    FOLDER: process.env.S3_FOLDER_PREFIX || 'neon'
   }
-}
+};

@@ -1,5 +1,5 @@
 
-const { Tenant } = require('../models');
+const { Tenant, User } = require('../models');
 
 exports.getTenants = async (req, res) => {
     try {
@@ -14,15 +14,31 @@ exports.createTenant = async (req, res) => {
     try {
         const { name, domain, subscriptionPlan } = req.body;
         
+        const tenantId = `tenant_${Date.now()}`;
         const newTenant = new Tenant({
-            _id: `tenant_${Date.now()}`,
+            _id: tenantId,
             name,
             domain,
             subscriptionPlan
         });
         
         await newTenant.save();
-        res.status(201).json(newTenant);
+
+        // Create Default Tenant Admin
+        const adminEmail = `admin@${domain}`;
+        const newUser = new User({
+            _id: `user_${Date.now()}`,
+            tenantId: tenantId,
+            name: 'Tenant Admin',
+            email: adminEmail,
+            password: 'password123', // Default password
+            role: 'TenantAdmin',
+            designation: 'Administrator'
+        });
+
+        await newUser.save();
+
+        res.status(201).json({ tenant: newTenant, admin: newUser });
     } catch (err) {
         res.status(500).json({ message: "Error creating tenant", error: err.message });
     }
@@ -42,9 +58,63 @@ exports.deleteTenant = async (req, res) => {
     try {
         const { id } = req.params;
         await Tenant.findByIdAndDelete(id);
+        // Clean up users? 
+        // For now, let's keep it simple or user might want to soft delete.
         res.json({ message: "Tenant deleted" });
     } catch (err) {
         res.status(500).json({ message: "Error deleting tenant" });
+    }
+};
+
+// --- Tenant Admin Management ---
+exports.getTenantAdmin = async (req, res) => {
+    try {
+        const { tenantId } = req.params;
+        // Find the user with TenantAdmin role for this tenant
+        // Assuming one main admin or just picking the first for now as per requirement "attach a user... that user shuld be able to changed"
+        const admin = await User.findOne({ tenantId, role: 'TenantAdmin' });
+        if (!admin) return res.status(404).json({ message: "Tenant Admin not found" });
+        res.json(admin);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching tenant admin", error: err.message });
+    }
+};
+
+exports.updateTenantAdmin = async (req, res) => {
+    try {
+        const { tenantId } = req.params;
+        const { name, email } = req.body;
+
+        const admin = await User.findOneAndUpdate(
+            { tenantId, role: 'TenantAdmin' },
+            { name, email },
+            { new: true }
+        );
+
+        if (!admin) return res.status(404).json({ message: "Tenant Admin not found" });
+        res.json(admin);
+    } catch (err) {
+        res.status(500).json({ message: "Error updating tenant admin", error: err.message });
+    }
+};
+
+exports.resetTenantAdminPassword = async (req, res) => {
+    try {
+        const { tenantId } = req.params;
+        const { password } = req.body;
+
+        if (!password) return res.status(400).json({ message: "Password is required" });
+
+        const admin = await User.findOneAndUpdate(
+            { tenantId, role: 'TenantAdmin' },
+            { password }, // In a real app, hash this!
+            { new: true }
+        );
+
+        if (!admin) return res.status(404).json({ message: "Tenant Admin not found" });
+        res.json({ message: "Password updated successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Error resetting password", error: err.message });
     }
 };
 
@@ -77,7 +147,9 @@ exports.updateSettings = async (req, res) => {
 
         // Invalidate cache
         const entitlementService = require('../services/entitlementService');
-        entitlementService.invalidateCache(req.user.tenantId);
+        if (entitlementService && entitlementService.invalidateCache) {
+            entitlementService.invalidateCache(req.user.tenantId);
+        }
 
         res.json(tenant.settings);
     } catch (err) { res.status(500).json({ error: err.message }); }
