@@ -39,7 +39,20 @@ const TenantSchema = new mongoose.Schema({
   name: { type: String, required: true },
   domain: { type: String },
   status: { type: String, enum: ['Active', 'Suspended'], default: 'Active' },
-  subscriptionPlan: { type: String, default: 'Free' }
+  subscriptionPlan: { type: String, default: 'Free' },
+  settings: {
+    disabledModules: [{ type: String }],
+    timezone: { type: String, default: 'UTC' },
+    workingHours: { type: String }
+  },
+  customPermissions: {
+    // Map<UserRole, Map<Module, Actions[]>>
+    // stored as nested objects for queryability
+    // e.g., { "Manager": { "projects": ["view", "edit"], "tasks": ["view"] } }
+    type: Map,
+    of: Map,
+    default: {}
+  }
 }, { timestamps: true, collection: 'tenants' });
 
 const UserSchema = new mongoose.Schema({
@@ -48,7 +61,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['SuperAdmin', 'TenantAdmin', 'Admin', 'HR', 'Employee', 'Manager'], default: 'Employee' },
+  role: { type: String, enum: ['SuperAdmin', 'TenantAdmin', 'Admin', 'HR', 'Employee', 'Manager', 'Accountant'], default: 'Employee' },
   avatarUrl: { type: String },
   teamId: { type: String, ref: 'Team' },
   designation: { type: String },
@@ -111,11 +124,13 @@ const TeamSchema = new mongoose.Schema({
 
 const ClientSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' },
   name: { type: String, required: true }
 }, { timestamps: true, collection: 'clients' });
 
 const ProjectSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' },
   name: { type: String, required: true },
   clientId: { type: String, ref: 'Client', required: true },
   workCalendarId: { type: String, ref: 'WorkCalendar' },
@@ -127,16 +142,19 @@ const ProjectSchema = new mongoose.Schema({
 
 const JobSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' },
   name: { type: String, required: true },
   projectId: { type: String, ref: 'Project', required: true }
 }, { timestamps: true, collection: 'jobs' });
 
 const TaskSchema = new mongoose.Schema({
   _id: { type: String, required: true },
+  tenantId: { type: String, ref: 'Tenant' },
   name: { type: String, required: true },
   allocatedHours: { type: Number, default: 0 },
-  status: { type: String, enum: ['To Do', 'In Progress', 'Completed'], default: 'To Do' },
+  status: { type: String, enum: ['To Do', 'In Progress', 'Completed', 'Blocked'], default: 'To Do' },
   assignedBy: { type: String },
+  assignedTo: { type: String, ref: 'User' },
   jobId: { type: String, ref: 'Job', required: true }
 }, { timestamps: true, collection: 'tasks' });
 

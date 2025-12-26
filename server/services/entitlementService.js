@@ -37,9 +37,19 @@ exports.getTenantEntitlements = async (tenantId) => {
         
         features.forEach(f => {
             if (f.type === 'BOOLEAN') {
-                entitlements[f.key] = { type: 'BOOLEAN', value: f.boolValue };
+                entitlements[f.key] = { type: 'BOOLEAN', value: f.boolValue, planAllowed: f.boolValue };
             } else if (f.type === 'NUMERIC') {
-                entitlements[f.key] = { type: 'NUMERIC', value: f.numericValue };
+                entitlements[f.key] = { type: 'NUMERIC', value: f.numericValue, planAllowed: true }; // Numeric usually limits, true means 'feature present'
+            }
+        });
+    }
+
+    // Apply Tenant Overrides (Disable only)
+    const tenant = await db.Tenant.findById(tenantId).select('settings');
+    if (tenant && tenant.settings && tenant.settings.disabledModules) {
+        tenant.settings.disabledModules.forEach(key => {
+            if (entitlements[key] && entitlements[key].type === 'BOOLEAN') {
+                entitlements[key].value = false;
             }
         });
     }

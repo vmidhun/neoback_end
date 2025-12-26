@@ -81,8 +81,9 @@ router.get('/tenant/entitlements', verifyToken, entitlementController.getMyEntit
 // --- Users ---
 router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), userController.getAllUsers);
 router.get('/users/:id', verifyToken, userController.getUserById);
-router.post('/users', verifyToken, authorize(['Admin']), userController.createUser);
-router.put('/users/:id', verifyToken, authorize(['Admin']), userController.updateUser);
+router.post('/users', verifyToken, authorize(['Admin', 'HR']), userController.createUser);
+router.put('/users/bulk', verifyToken, authorize(['Admin']), userController.bulkUpdateUsers);
+router.put('/users/:id', verifyToken, authorize(['Admin', 'HR']), userController.updateUser);
 router.delete('/users/:id', verifyToken, authorize(['Admin']), userController.deleteUser);
 
 // --- Dashboards ---
@@ -164,8 +165,14 @@ router.post('/timesheets/submit', verifyToken, ensureFeatureEnabled('timesheet')
 router.get('/timesheets', verifyToken, ensureFeatureEnabled('timesheet'), timesheetController.getTimesheets);
 router.put('/timesheets/:id/status', verifyToken, authorize(['Admin', 'Manager']), ensureFeatureEnabled('timesheet'), timesheetController.updateTimesheetStatus);
 
+// --- Tenant Settings ---
+router.get('/tenant/settings', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.getSettings);
+router.put('/tenant/settings', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.updateSettings);
+router.get('/tenant/permissions', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.getPermissions);
+router.put('/tenant/permissions', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.updatePermissions);
+
 // --- Reports ---
-router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'HR']), ensureFeatureEnabled('reports'), reportController.getTimesheetReport);
+router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'TenantAdmin', 'HR', 'Accountant']), ensureFeatureEnabled('reports'), reportController.getTimesheetReport);
 router.get('/reports/leave-balance/:userId', verifyToken, ensureFeatureEnabled('reports'), reportController.getLeaveBalance);
 
 module.exports = router;

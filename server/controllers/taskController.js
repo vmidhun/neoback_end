@@ -4,7 +4,27 @@ const aiService = require('../services/aiService');
 
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await db.Task.find()
+    const filter = {};
+
+    // 1. Tenant Scope (unless SuperAdmin)
+    if (req.user.role !== 'SuperAdmin') {
+      if (!req.user.tenantId) return res.status(400).json({ error: 'Tenant context required' });
+      filter.tenantId = req.user.tenantId;
+    }
+
+    // 2. Role Scope
+    if (req.user.role === 'Employee') {
+      filter.assignedTo = req.user._id;
+    } else if (req.user.role === 'Manager') {
+      // Fetch team members
+      const teamMembers = await db.User.find({ reportingManagerId: req.user._id }).select('_id');
+      const memberIds = teamMembers.map(u => u._id);
+      memberIds.push(req.user._id); // Include self
+      filter.assignedTo = { $in: memberIds };
+    }
+    // Admin, HR, TenantAdmin see all within Tenant
+
+    const tasks = await db.Task.find(filter)
       .populate({
         path: 'jobId',
         populate: {
