@@ -262,6 +262,42 @@ const AttendanceSchema = new mongoose.Schema({
   status: { type: String, enum: ['On Time', 'Late', 'Half Day', 'Absent'], default: 'On Time' }
 }, { timestamps: true, collection: 'attendance' });
 
+// --- New Super Admin Models ---
+const PlanSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  code: { type: String, required: true, unique: true }, // e.g. STARTER, PRO
+  billingType: { type: String, enum: ['TRIAL', 'PAID', 'DISCOUNTED'], default: 'PAID' },
+  priceCurrency: { type: String, default: 'INR' },
+  priceAmount: { type: Number, required: true },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true, collection: 'plans' });
+
+const PlanFeatureSchema = new mongoose.Schema({
+  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', index: true },
+  key: { type: String, required: true }, // 'project_management', 'max_employees', etc.
+  type: { type: String, enum: ['BOOLEAN', 'NUMERIC'], required: true },
+  boolValue: { type: Boolean, default: null },
+  numericValue: { type: Number, default: null },
+}, { timestamps: true, collection: 'plan_features' });
+PlanFeatureSchema.index({ plan: 1, key: 1 }, { unique: true });
+
+const TenantSubscriptionSchema = new mongoose.Schema({
+  tenant: { type: String, ref: 'Tenant', index: true, unique: true }, // Using String ID for Tenant as per existing schema
+  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+  status: { type: String, enum: ['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELLED'], default: 'TRIAL' },
+  trialStart: Date,
+  trialEnd: Date,
+  discountType: { type: String, enum: ['NONE', 'PERCENT', 'FIXED'], default: 'NONE' },
+  discountValue: { type: Number, default: 0 },
+}, { timestamps: true, collection: 'tenant_subscriptions' });
+
+const TenantUsageSchema = new mongoose.Schema({
+  tenant: { type: String, ref: 'Tenant', index: true, unique: true },
+  employeesCount: { type: Number, default: 0 },
+  projectsCount: { type: Number, default: 0 },
+  lastRefreshedAt: Date,
+}, { timestamps: true, collection: 'tenant_usage' });
+
 // --- Register Models ---
 const Tenant = mongoose.models.Tenant || mongoose.model('Tenant', TenantSchema);
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -281,6 +317,10 @@ const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', Leave
 const WorkCalendar = mongoose.models.WorkCalendar || mongoose.model('WorkCalendar', WorkCalendarSchema);
 const Timesheet = mongoose.models.Timesheet || mongoose.model('Timesheet', TimesheetSchema);
 const StandupSession = mongoose.models.StandupSession || mongoose.model('StandupSession', StandupSessionSchema);
+const Plan = mongoose.models.Plan || mongoose.model('Plan', PlanSchema);
+const PlanFeature = mongoose.models.PlanFeature || mongoose.model('PlanFeature', PlanFeatureSchema);
+const TenantSubscription = mongoose.models.TenantSubscription || mongoose.model('TenantSubscription', TenantSubscriptionSchema);
+const TenantUsage = mongoose.models.TenantUsage || mongoose.model('TenantUsage', TenantUsageSchema);
 
 const db = {
   mongoose,
@@ -302,7 +342,11 @@ const db = {
   LeaveType,
   WorkCalendar,
   Timesheet,
-  StandupSession
+  StandupSession,
+  Plan,
+  PlanFeature,
+  TenantSubscription,
+  TenantUsage
 };
 
 db.seed = async (force = false) => {

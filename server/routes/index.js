@@ -44,16 +44,39 @@ router.post('/upload/image', verifyToken, upload.single('image'), (req, res) => 
 });
 
 const tenantController = require('../controllers/tenantController');
+const superAdminController = require('../controllers/superAdminController');
+const entitlementController = require('../controllers/entitlementController');
+const { ensureFeatureEnabled } = require('../middleware/subscriptionMiddleware');
 
 // --- Auth ---
 router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
 
 // --- Tenants (SuperAdmin) ---
+// Note: Some overlap with superAdminController, keeping legacy tenantController for basic CRUD if needed, 
+// but preferred to use new Super Admin routes.
 router.get('/tenants', verifyToken, authorize(['SuperAdmin']), tenantController.getTenants);
 router.post('/tenants', verifyToken, authorize(['SuperAdmin']), tenantController.createTenant);
 router.put('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantController.updateTenant);
 router.delete('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantController.deleteTenant);
+
+// --- Super Admin Control Plane ---
+router.get('/super/plans', verifyToken, authorize(['SuperAdmin']), superAdminController.getPlans);
+router.post('/super/plans', verifyToken, authorize(['SuperAdmin']), superAdminController.createPlan);
+router.put('/super/plans/:id', verifyToken, authorize(['SuperAdmin']), superAdminController.updatePlan);
+
+router.get('/super/plans/:planId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.getPlanFeatures);
+router.post('/super/plans/:planId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.bulkUpdateFeatures);
+
+router.get('/super/tenants', verifyToken, authorize(['SuperAdmin']), superAdminController.getTenants);
+router.patch('/super/tenants/:tenantId/status', verifyToken, authorize(['SuperAdmin']), superAdminController.updateTenantStatus);
+router.get('/super/tenants/:tenantId/subscription', verifyToken, authorize(['SuperAdmin']), superAdminController.getSubscription);
+router.post('/super/tenants/:tenantId/subscription', verifyToken, authorize(['SuperAdmin']), superAdminController.updateSubscription);
+
+router.get('/super/metrics/overview', verifyToken, authorize(['SuperAdmin']), superAdminController.getMetrics);
+
+// --- Tenant Entitlements ---
+router.get('/tenant/entitlements', verifyToken, entitlementController.getMyEntitlements);
 
 // --- Users ---
 router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), userController.getAllUsers);
@@ -88,10 +111,10 @@ router.post('/clients', verifyToken, authorize(['Admin']), adminController.creat
 router.put('/clients/:id', verifyToken, authorize(['Admin']), adminController.updateClient);
 router.delete('/clients/:id', verifyToken, authorize(['Admin']), adminController.deleteClient);
 
-router.get('/projects', verifyToken, authorize(['Admin', 'Manager', 'HR', 'Employee']), adminController.getProjects);
-router.post('/projects', verifyToken, authorize(['Admin']), adminController.createProject);
-router.put('/projects/:id', verifyToken, authorize(['Admin']), adminController.updateProject);
-router.delete('/projects/:id', verifyToken, authorize(['Admin']), adminController.deleteProject);
+router.get('/projects', verifyToken, authorize(['Admin', 'Manager', 'HR', 'Employee']), ensureFeatureEnabled('project_management'), adminController.getProjects);
+router.post('/projects', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.createProject);
+router.put('/projects/:id', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.updateProject);
+router.delete('/projects/:id', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.deleteProject);
 
 router.get('/teams', verifyToken, authorize(['Admin', 'Manager', 'HR', 'Employee']), adminController.getTeams);
 router.post('/teams', verifyToken, authorize(['Admin']), adminController.createTeam);
@@ -106,12 +129,12 @@ router.get('/config/modules', verifyToken, authorize(['Admin']), adminController
 router.put('/config/modules/:moduleName', verifyToken, authorize(['Admin']), adminController.updateModule);
 
 // --- Leave Management ---
-router.post('/leaves/apply', verifyToken, leaveController.applyLeave);
-router.get('/leaves/my', verifyToken, leaveController.getMyLeaves);
-router.get('/leaves/balance/my', verifyToken, leaveController.getMyBalance);
-router.get('/leaves/pending', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), leaveController.getPendingApprovals); // Employee can be a manager
-router.put('/leaves/:id/status', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), leaveController.updateLeaveStatus);
-router.get('/leaves/calendar', verifyToken, leaveController.getTeamCalendar);
+router.post('/leaves/apply', verifyToken, ensureFeatureEnabled('leave_management'), leaveController.applyLeave);
+router.get('/leaves/my', verifyToken, ensureFeatureEnabled('leave_management'), leaveController.getMyLeaves);
+router.get('/leaves/balance/my', verifyToken, ensureFeatureEnabled('leave_management'), leaveController.getMyBalance);
+router.get('/leaves/pending', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), ensureFeatureEnabled('leave_management'), leaveController.getPendingApprovals);
+router.put('/leaves/:id/status', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), ensureFeatureEnabled('leave_management'), leaveController.updateLeaveStatus);
+router.get('/leaves/calendar', verifyToken, ensureFeatureEnabled('leave_management'), leaveController.getTeamCalendar);
 
 const workCalendarController = require('../controllers/workCalendarController');
 const standupController = require('../controllers/standupController');
@@ -119,14 +142,14 @@ const standupController = require('../controllers/standupController');
 // ... (existing imports)
 
 // --- Standup Routes ---
-router.get('/standup/daily', verifyToken, standupController.getDailyStandup);
-router.post('/standup/session', verifyToken, standupController.createOrUpdateSession);
+router.get('/standup/daily', verifyToken, ensureFeatureEnabled('team_standup'), standupController.getDailyStandup);
+router.post('/standup/session', verifyToken, ensureFeatureEnabled('team_standup'), standupController.createOrUpdateSession);
 
 // --- HR Policy & Configuration ---
-router.get('/policies/leave-types', verifyToken, policyController.getLeaveTypes);
-router.post('/policies/leave-types', verifyToken, authorize(['Admin', 'HR']), policyController.createLeaveType);
-router.put('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.updateLeaveType);
-router.delete('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), policyController.deleteLeaveType);
+router.get('/policies/leave-types', verifyToken, ensureFeatureEnabled('leave_management'), policyController.getLeaveTypes);
+router.post('/policies/leave-types', verifyToken, authorize(['Admin', 'HR']), ensureFeatureEnabled('leave_management'), policyController.createLeaveType);
+router.put('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), ensureFeatureEnabled('leave_management'), policyController.updateLeaveType);
+router.delete('/policies/leave-types/:id', verifyToken, authorize(['Admin', 'HR']), ensureFeatureEnabled('leave_management'), policyController.deleteLeaveType);
 
 router.get('/policies/calendars', verifyToken, workCalendarController.getCalendars);
 router.post('/policies/calendars', verifyToken, authorize(['Admin', 'HR']), workCalendarController.createCalendar);
@@ -137,12 +160,12 @@ router.delete('/policies/calendars/:id', verifyToken, authorize(['Admin', 'HR'])
 router.put('/projects/:projectId/timesheet-config', verifyToken, authorize(['Admin', 'Manager']), policyController.updateProjectTimesheetConfig);
 
 // --- Timesheets ---
-router.post('/timesheets/submit', verifyToken, timesheetController.submitTimesheet);
-router.get('/timesheets', verifyToken, timesheetController.getTimesheets);
-router.put('/timesheets/:id/status', verifyToken, authorize(['Admin', 'Manager']), timesheetController.updateTimesheetStatus);
+router.post('/timesheets/submit', verifyToken, ensureFeatureEnabled('timesheet'), timesheetController.submitTimesheet);
+router.get('/timesheets', verifyToken, ensureFeatureEnabled('timesheet'), timesheetController.getTimesheets);
+router.put('/timesheets/:id/status', verifyToken, authorize(['Admin', 'Manager']), ensureFeatureEnabled('timesheet'), timesheetController.updateTimesheetStatus);
 
 // --- Reports ---
-router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'HR']), reportController.getTimesheetReport);
-router.get('/reports/leave-balance/:userId', verifyToken, reportController.getLeaveBalance);
+router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'HR']), ensureFeatureEnabled('reports'), reportController.getTimesheetReport);
+router.get('/reports/leave-balance/:userId', verifyToken, ensureFeatureEnabled('reports'), reportController.getLeaveBalance);
 
 module.exports = router;
