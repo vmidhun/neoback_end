@@ -1,0 +1,20 @@
+[
+  { "product": "p_crm", "key": "crm", "type": "BOOLEAN", "boolValue": true },
+  { "product": "p_crm", "key": "max_crm_leads", "type": "NUMERIC", "numericValue": 2000 },
+  { "product": "p_crm", "key": "max_crm_contacts", "type": "NUMERIC", "numericValue": 5000 },
+  
+  { "product": "p_leave", "key": "leave_management", "type": "BOOLEAN", "boolValue": true },
+  { "product": "p_leave", "key": "max_employees", "type": "NUMERIC", "numericValue": 50 },
+  { "product": "p_leave", "key": "max_leave_types", "type": "NUMERIC", "numericValue": 10 },
+
+  { "product": "p_projects", "key": "project_management", "type": "BOOLEAN", "boolValue": true },
+  { "product": "p_projects", "key": "max_projects", "type": "NUMERIC", "numericValue": 20 },
+  { "product": "p_projects", "key": "max_tasks", "type": "NUMERIC", "numericValue": 1000 },
+
+  { "product": "p_timesheets", "key": "timesheet", "type": "BOOLEAN", "boolValue": true },
+
+  { "product": "p_standup", "key": "team_standup", "type": "BOOLEAN", "boolValue": true },
+  { "product": "p_standup", "key": "max_standup_sessions_per_day", "type": "NUMERIC", "numericValue": 1 },
+
+  { "product": "p_salary", "key": "salary_module", "type": "BOOLEAN", "boolValue": true }
+]

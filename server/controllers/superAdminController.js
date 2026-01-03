@@ -1,45 +1,44 @@
 
 const db = require('../models');
-const { Plan, PlanFeature, Tenant, TenantSubscription, TenantUsage } = db;
+const { Product, ProductFeature, Tenant, TenantProductSubscription, TenantUsage } = db;
 const entitlementService = require('../services/entitlementService');
 
-// --- Plans ---
-exports.getPlans = async (req, res) => {
+// --- Products ---
+exports.getProducts = async (req, res) => {
     try {
-        const plans = await Plan.find().sort({ priceAmount: 1 });
-        // Retrieve features for each plan? Or separate call?
-        // Let's include basic count or logic if needed. 
-        res.json(plans);
+        const products = await Product.find().sort({ priceAmount: 1 });
+        res.json(products);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-exports.createPlan = async (req, res) => {
+exports.createProduct = async (req, res) => {
     try {
-        const { name, code, billingType, priceCurrency, priceAmount } = req.body;
-        const newPlan = await Plan.create({ name, code, billingType, priceCurrency, priceAmount });
-        res.status(201).json(newPlan);
+        const { id, name, code, description, billingType, priceCurrency, priceAmount, pricingTiers } = req.body;
+        // Map 'id' from frontend to '_id' for Mongoose
+        const newProduct = await Product.create({ _id: id, name, code, description, billingType, priceCurrency, priceAmount, pricingTiers });
+        res.status(201).json(newProduct);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-exports.updatePlan = async (req, res) => {
+exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const updated = await Plan.findByIdAndUpdate(id, req.body, { new: true });
+        const updated = await Product.findByIdAndUpdate(id, req.body, { new: true });
         res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-// --- Plan Features ---
-exports.getPlanFeatures = async (req, res) => {
+// --- Product Features ---
+exports.getProductFeatures = async (req, res) => {
     try {
-        const { planId } = req.params;
-        const features = await PlanFeature.find({ plan: planId });
+        const { productId } = req.params;
+        const features = await ProductFeature.find({ product: productId });
         res.json(features);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -48,15 +47,14 @@ exports.getPlanFeatures = async (req, res) => {
 
 exports.bulkUpdateFeatures = async (req, res) => {
     try {
-        const { planId } = req.params;
+        const { productId } = req.params;
         const featureList = req.body; // Array of { key, type, boolValue, numericValue }
-        
-        // Transaction style or just loops? Loop is fine for now.
+
         const results = [];
         for (const feat of featureList) {
-            const f = await PlanFeature.findOneAndUpdate(
-                { plan: planId, key: feat.key },
-                { ...feat, plan: planId },
+            const f = await ProductFeature.findOneAndUpdate(
+                { product: productId, key: feat.key },
+                { ...feat, product: productId },
                 { upsert: true, new: true }
             );
             results.push(f);
@@ -74,10 +72,18 @@ exports.getTenants = async (req, res) => {
         // Enrich with subscription info
         const enhanced = [];
         for (const t of tenants) {
-            const sub = await TenantSubscription.findOne({ tenant: t._id }).populate('plan', 'name code');
+            const subs = await TenantProductSubscription.find({ tenantId: t._id }).populate('productId', 'name code');
             enhanced.push({
                 ...t.toObject(),
-                subscription: sub ? { status: sub.status, plan: sub.plan } : null
+                subscriptions: subs.map(s => {
+                    if (!s.productId) return null;
+                    return {
+                        productId: s.productId._id,
+                        productName: s.productId.name,
+                        productCode: s.productId.code,
+                        status: s.status
+                    };
+                }).filter(Boolean)
             });
         }
         res.json(enhanced);
@@ -97,11 +103,11 @@ exports.updateTenantStatus = async (req, res) => {
     }
 };
 
-exports.getSubscription = async (req, res) => {
+exports.getSubscriptions = async (req, res) => {
     try {
         const { tenantId } = req.params;
-        const sub = await TenantSubscription.findOne({ tenant: tenantId }).populate('plan');
-        res.json(sub || {});
+        const subs = await TenantProductSubscription.find({ tenantId: tenantId }).populate('productId');
+        res.json(subs);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -110,18 +116,21 @@ exports.getSubscription = async (req, res) => {
 exports.updateSubscription = async (req, res) => {
     try {
         const { tenantId } = req.params;
-        const { planId, status, trialEnd, discountType, discountValue } = req.body;
-        
+        const { productId, status, trialEnd, discountType, discountValue, billingTierIndex } = req.body;
+
+        // We need productId to identify which subscription to update
+        if (!productId) return res.status(400).json({ error: "productId is required" });
+
         const updateData = {
-            plan: planId,
             status,
             trialEnd,
             discountType,
-            discountValue
+            discountValue,
+            billingTierIndex
         };
 
-        const sub = await TenantSubscription.findOneAndUpdate(
-            { tenant: tenantId },
+        const sub = await TenantProductSubscription.findOneAndUpdate(
+            { tenantId: tenantId, productId: productId },
             updateData,
             { upsert: true, new: true }
         );
@@ -141,21 +150,21 @@ exports.getMetrics = async (req, res) => {
         const totalTenants = await Tenant.countDocuments();
         const activeTenants = await Tenant.countDocuments({ status: 'Active' });
         // Subscription metrics
-        const subs = await TenantSubscription.find().populate('plan', 'code name');
+        const subs = await TenantProductSubscription.find().populate('productId', 'code name');
         
-        const byPlan = {};   // { planCode: count }
+        const byProduct = {};   // { productCode: count }
         const byStatus = {}; // { TRIAL: count, ACTIVE: count }
         
         subs.forEach(s => {
-            const code = s.plan?.code || 'UNKNOWN';
-            byPlan[code] = (byPlan[code] || 0) + 1;
+            const code = s.productId?.code || 'UNKNOWN';
+            byProduct[code] = (byProduct[code] || 0) + 1;
             byStatus[s.status] = (byStatus[s.status] || 0) + 1;
         });
 
         res.json({
             totalTenants,
             activeTenants,
-            byPlan,
+            byProduct,
             byStatus
         });
     } catch (err) {

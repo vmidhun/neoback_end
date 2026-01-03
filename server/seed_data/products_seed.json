@@ -1,0 +1,72 @@
+[
+  {
+    "_id": "p_base",
+    "code": "BASE",
+    "name": "Base Platform",
+    "description": "Essential platform features including User Management, Dashboards, and Basic Settings. Required for all tenants.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 999,
+    "isActive": true
+  },
+  {
+    "_id": "p_crm",
+    "code": "CRM",
+    "name": "CRM Module",
+    "description": "Complete Customer Relationship Management with Leads, Contacts, and Activities tracking.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 499,
+    "isActive": true
+  },
+  {
+    "_id": "p_leave",
+    "code": "LEAVE",
+    "name": "Leave Management",
+    "description": "Comprehensive leave tracking, policies, balances, and approval workflows.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 299,
+    "isActive": true
+  },
+  {
+    "_id": "p_projects",
+    "code": "PROJECTS",
+    "name": "Project Management",
+    "description": "Manage Projects, Client details, and Tasks to streamline team coordination.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 599,
+    "isActive": true
+  },
+  {
+    "_id": "p_timesheets",
+    "code": "TIMESHEETS",
+    "name": "Timesheet Management",
+    "description": "Time logging, approval cycles, and productivity reporting.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 199,
+    "isActive": true
+  },
+  {
+    "_id": "p_standup",
+    "code": "STANDUP",
+    "name": "Stand-up Module",
+    "description": "Daily synchronous or asynchronous stand-up meetings and task check-ins.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 99,
+    "isActive": true
+  },
+  {
+    "_id": "p_salary",
+    "code": "SALARY",
+    "name": "Salary / Payroll",
+    "description": "Payroll processing, Salary structures, and Payslip generation.",
+    "billingType": "PAID",
+    "priceCurrency": "INR",
+    "priceAmount": 799,
+    "isActive": true
+  }
+]

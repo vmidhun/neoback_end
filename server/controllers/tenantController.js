@@ -32,7 +32,7 @@ exports.createTenant = async (req, res) => {
             name: 'Tenant Admin',
             email: adminEmail,
             password: 'password123', // Default password
-            role: 'TenantAdmin',
+            role: 'Owner',
             designation: 'Administrator'
         });
 
@@ -72,7 +72,7 @@ exports.getTenantAdmin = async (req, res) => {
         const { tenantId } = req.params;
         // Find the user with TenantAdmin role for this tenant
         // Assuming one main admin or just picking the first for now as per requirement "attach a user... that user shuld be able to changed"
-        const admin = await User.findOne({ tenantId, role: 'TenantAdmin' });
+        const admin = await User.findOne({ tenantId, role: 'Owner' });
         if (!admin) return res.status(404).json({ message: "Tenant Admin not found" });
         res.json(admin);
     } catch (err) {
@@ -86,7 +86,7 @@ exports.updateTenantAdmin = async (req, res) => {
         const { name, email } = req.body;
 
         const admin = await User.findOneAndUpdate(
-            { tenantId, role: 'TenantAdmin' },
+            { tenantId, role: 'Owner' },
             { name, email },
             { new: true }
         );
@@ -106,7 +106,7 @@ exports.resetTenantAdminPassword = async (req, res) => {
         if (!password) return res.status(400).json({ message: "Password is required" });
 
         const admin = await User.findOneAndUpdate(
-            { tenantId, role: 'TenantAdmin' },
+            { tenantId, role: 'Owner' },
             { password }, // In a real app, hash this!
             { new: true }
         );

@@ -61,7 +61,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['SuperAdmin', 'TenantAdmin', 'Admin', 'HR', 'Employee', 'Manager', 'Accountant'], default: 'Employee' },
+  role: { type: String, enum: ['SuperAdmin', 'Owner', 'Admin', 'HR', 'Employee', 'Manager', 'Accountant'], default: 'Employee' },
   avatarUrl: { type: String },
   teamId: { type: String, ref: 'Team' },
   designation: { type: String },
@@ -280,34 +280,46 @@ const AttendanceSchema = new mongoose.Schema({
   status: { type: String, enum: ['On Time', 'Late', 'Half Day', 'Absent'], default: 'On Time' }
 }, { timestamps: true, collection: 'attendance' });
 
-// --- New Super Admin Models ---
-const PlanSchema = new mongoose.Schema({
+// --- New Product & Subscription Models ---
+const ProductSchema = new mongoose.Schema({
+  _id: { type: String, required: true }, // 'p_base', 'p_crm' etc
+  code: { type: String, required: true, unique: true }, // BASE, CRM, ...
   name: { type: String, required: true },
-  code: { type: String, required: true, unique: true }, // e.g. STARTER, PRO
+  description: { type: String },
   billingType: { type: String, enum: ['TRIAL', 'PAID', 'DISCOUNTED'], default: 'PAID' },
   priceCurrency: { type: String, default: 'INR' },
   priceAmount: { type: Number, required: true },
   isActive: { type: Boolean, default: true },
-}, { timestamps: true, collection: 'plans' });
+  pricingTiers: [
+    {
+      minUsers: { type: Number },
+      maxUsers: { type: Number }, // null for infinite
+      priceAmount: { type: Number }
+    }
+  ]
+}, { timestamps: true, collection: 'products' });
 
-const PlanFeatureSchema = new mongoose.Schema({
-  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', index: true },
+const ProductFeatureSchema = new mongoose.Schema({
+  product: { type: String, ref: 'Product', index: true },
   key: { type: String, required: true }, // 'project_management', 'max_employees', etc.
   type: { type: String, enum: ['BOOLEAN', 'NUMERIC'], required: true },
   boolValue: { type: Boolean, default: null },
   numericValue: { type: Number, default: null },
-}, { timestamps: true, collection: 'plan_features' });
-PlanFeatureSchema.index({ plan: 1, key: 1 }, { unique: true });
+}, { timestamps: true, collection: 'product_features' });
+ProductFeatureSchema.index({ product: 1, key: 1 }, { unique: true });
 
-const TenantSubscriptionSchema = new mongoose.Schema({
-  tenant: { type: String, ref: 'Tenant', index: true, unique: true }, // Using String ID for Tenant as per existing schema
-  plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+const TenantProductSubscriptionSchema = new mongoose.Schema({
+  tenantId: { type: String, ref: 'Tenant', index: true },
+  productId: { type: String, ref: 'Product', required: true },
   status: { type: String, enum: ['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELLED'], default: 'TRIAL' },
   trialStart: Date,
   trialEnd: Date,
   discountType: { type: String, enum: ['NONE', 'PERCENT', 'FIXED'], default: 'NONE' },
   discountValue: { type: Number, default: 0 },
-}, { timestamps: true, collection: 'tenant_subscriptions' });
+  billingTierIndex: { type: Number, default: -1 } // -1 for Base, 0+ for specific pricingTiers index
+}, { timestamps: true, collection: 'tenant_product_subscriptions' });
+// A tenant can have multiple products, but only one subscription per product
+TenantProductSubscriptionSchema.index({ tenantId: 1, productId: 1 }, { unique: true });
 
 const TenantUsageSchema = new mongoose.Schema({
   tenant: { type: String, ref: 'Tenant', index: true, unique: true },
@@ -335,9 +347,9 @@ const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', Leave
 const WorkCalendar = mongoose.models.WorkCalendar || mongoose.model('WorkCalendar', WorkCalendarSchema);
 const Timesheet = mongoose.models.Timesheet || mongoose.model('Timesheet', TimesheetSchema);
 const StandupSession = mongoose.models.StandupSession || mongoose.model('StandupSession', StandupSessionSchema);
-const Plan = mongoose.models.Plan || mongoose.model('Plan', PlanSchema);
-const PlanFeature = mongoose.models.PlanFeature || mongoose.model('PlanFeature', PlanFeatureSchema);
-const TenantSubscription = mongoose.models.TenantSubscription || mongoose.model('TenantSubscription', TenantSubscriptionSchema);
+const Product = mongoose.models.Product || mongoose.model('Product', ProductSchema);
+const ProductFeature = mongoose.models.ProductFeature || mongoose.model('ProductFeature', ProductFeatureSchema);
+const TenantProductSubscription = mongoose.models.TenantProductSubscription || mongoose.model('TenantProductSubscription', TenantProductSubscriptionSchema);
 const TenantUsage = mongoose.models.TenantUsage || mongoose.model('TenantUsage', TenantUsageSchema);
 
 const db = {
@@ -361,9 +373,10 @@ const db = {
   WorkCalendar,
   Timesheet,
   StandupSession,
-  Plan,
-  PlanFeature,
-  TenantSubscription,
+
+  Product,
+  ProductFeature,
+  TenantProductSubscription,
   TenantUsage
 };
 
@@ -428,6 +441,10 @@ db.seed = async (force = false) => {
     await seedModel(LeaveType, 'leave_types_seed.json');
     await seedModel(WorkCalendar, 'work_calendars_seed.json');
     await seedModel(Timesheet, 'timesheets_seed.json');
+    await seedModel(Product, 'products_seed.json');
+    await seedModel(ProductFeature, 'product_features_seed.json');
+    await seedModel(Tenant, 'tenants_seed.json');
+
 
     console.log("Database seeded successfully.");
   } catch (error) {

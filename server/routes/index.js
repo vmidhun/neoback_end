@@ -29,23 +29,20 @@ const s3 = new S3Client({
 });
 
 const upload = multer({
-    storage: multerS3({
+    storage: (config.AWS.BUCKET_NAME && config.AWS.BUCKET_NAME.trim() !== '') ? multerS3({
         s3: s3,
         bucket: config.AWS.BUCKET_NAME,
         metadata: function (req, file, cb) {
             cb(null, { fieldName: file.fieldname });
         },
         key: function (req, file, cb) {
-            // Folder structure: neon/[tenantId]/team/[filename]
             const rootFolder = config.AWS.FOLDER || 'neon';
             const tenantId = (req.user && req.user.tenantId) ? req.user.tenantId : 'common';
-            // Determine subfolder based on route or field? For now, this route is mostly for team/avatars.
             const subfolder = 'team';
-
             const filename = Date.now().toString() + '-' + file.originalname;
             cb(null, `${rootFolder}/${tenantId}/${subfolder}/${filename}`);
         }
-    })
+    }) : multer.memoryStorage()
 });
 
 const { verifyToken, authorize } = require('../middleware/auth');
@@ -60,8 +57,12 @@ router.post('/upload/image', verifyToken, upload.single('image'), (req, res) => 
 
 const tenantController = require('../controllers/tenantController');
 const superAdminController = require('../controllers/superAdminController');
+const productController = require('../controllers/productController');
 const entitlementController = require('../controllers/entitlementController');
 const { ensureFeatureEnabled } = require('../middleware/subscriptionMiddleware');
+
+// --- Public Products API ---
+router.get('/products', productController.getAllProducts);
 
 // --- Auth ---
 router.post('/auth/login', authController.login);
@@ -76,17 +77,18 @@ router.put('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantControl
 router.delete('/tenants/:id', verifyToken, authorize(['SuperAdmin']), tenantController.deleteTenant);
 
 // --- Super Admin Control Plane ---
-router.get('/super/plans', verifyToken, authorize(['SuperAdmin']), superAdminController.getPlans);
-router.post('/super/plans', verifyToken, authorize(['SuperAdmin']), superAdminController.createPlan);
-router.put('/super/plans/:id', verifyToken, authorize(['SuperAdmin']), superAdminController.updatePlan);
+// --- Super Admin Control Plane ---
+router.get('/super/products', verifyToken, authorize(['SuperAdmin']), superAdminController.getProducts);
+router.post('/super/products', verifyToken, authorize(['SuperAdmin']), superAdminController.createProduct);
+router.put('/super/products/:id', verifyToken, authorize(['SuperAdmin']), superAdminController.updateProduct);
 
-router.get('/super/plans/:planId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.getPlanFeatures);
-router.post('/super/plans/:planId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.bulkUpdateFeatures);
+router.get('/super/products/:productId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.getProductFeatures);
+router.post('/super/products/:productId/features', verifyToken, authorize(['SuperAdmin']), superAdminController.bulkUpdateFeatures);
 
 router.get('/super/tenants', verifyToken, authorize(['SuperAdmin']), superAdminController.getTenants);
 router.patch('/super/tenants/:tenantId/status', verifyToken, authorize(['SuperAdmin']), superAdminController.updateTenantStatus);
-router.get('/super/tenants/:tenantId/subscription', verifyToken, authorize(['SuperAdmin']), superAdminController.getSubscription);
-router.post('/super/tenants/:tenantId/subscription', verifyToken, authorize(['SuperAdmin']), superAdminController.updateSubscription);
+router.get('/super/tenants/:tenantId/subscriptions', verifyToken, authorize(['SuperAdmin']), superAdminController.getSubscriptions);
+router.post('/super/tenants/:tenantId/subscriptions', verifyToken, authorize(['SuperAdmin']), superAdminController.updateSubscription);
 
 router.get('/super/metrics/overview', verifyToken, authorize(['SuperAdmin']), superAdminController.getMetrics);
 
@@ -100,18 +102,18 @@ router.put('/super/tenants/:tenantId/admin/password', verifyToken, authorize(['S
 router.get('/tenant/entitlements', verifyToken, entitlementController.getMyEntitlements);
 
 // --- Users ---
-router.get('/users', verifyToken, authorize(['Admin', 'HR', 'Manager', 'Employee']), userController.getAllUsers);
+router.get('/users', verifyToken, authorize(['Owner', 'Admin', 'HR', 'Manager', 'Employee', 'Accountant']), userController.getAllUsers);
 router.get('/users/:id', verifyToken, userController.getUserById);
-router.post('/users', verifyToken, authorize(['Admin', 'HR']), userController.createUser);
-router.put('/users/bulk', verifyToken, authorize(['Admin']), userController.bulkUpdateUsers);
-router.put('/users/:id', verifyToken, authorize(['Admin', 'HR']), userController.updateUser);
-router.delete('/users/:id', verifyToken, authorize(['Admin']), userController.deleteUser);
+router.post('/users', verifyToken, authorize(['Owner', 'Admin', 'HR']), userController.createUser);
+router.put('/users/bulk', verifyToken, authorize(['Owner', 'Admin']), userController.bulkUpdateUsers);
+router.put('/users/:id', verifyToken, authorize(['Owner', 'Admin', 'HR']), userController.updateUser);
+router.delete('/users/:id', verifyToken, authorize(['Owner', 'Admin']), userController.deleteUser);
 
 // --- Dashboards ---
 router.get('/dashboards/employee/:userId', verifyToken, dashboardController.getEmployeeDashboard);
-router.get('/dashboards/manager/:teamId', verifyToken, authorize(['Manager', 'Admin']), dashboardController.getScrumMasterDashboard);
-router.get('/dashboards/reports', verifyToken, authorize(['Admin', 'HR']), dashboardController.getReportsDashboard);
-router.get('/dashboards/admin', verifyToken, authorize(['Admin']), dashboardController.getAdminDashboard);
+router.get('/dashboards/manager/:teamId', verifyToken, authorize(['Owner', 'Manager', 'Admin']), dashboardController.getScrumMasterDashboard);
+router.get('/dashboards/reports', verifyToken, authorize(['Owner', 'Admin', 'HR']), dashboardController.getReportsDashboard);
+router.get('/dashboards/admin', verifyToken, authorize(['Owner', 'Admin']), dashboardController.getAdminDashboard);
 
 // --- Tasks ---
 router.get('/tasks', verifyToken, taskController.getTasks);
@@ -119,36 +121,36 @@ router.get('/tasks/:id', verifyToken, taskController.getTaskById);
 router.put('/tasks/:id/status', verifyToken, taskController.updateTaskStatus);
 router.post('/tasks/suggest-plan', verifyToken, taskController.suggestPlan);
 // Admin Task Management
-router.post('/tasks', verifyToken, authorize(['Admin', 'Manager']), adminController.createTask);
-router.put('/tasks/:id', verifyToken, authorize(['Admin', 'Manager']), adminController.updateTask);
-router.delete('/tasks/:id', verifyToken, authorize(['Admin', 'Manager']), adminController.deleteTask);
+router.post('/tasks', verifyToken, authorize(['Owner', 'Admin', 'Manager']), adminController.createTask);
+router.put('/tasks/:id', verifyToken, authorize(['Owner', 'Admin', 'Manager']), adminController.updateTask);
+router.delete('/tasks/:id', verifyToken, authorize(['Owner', 'Admin', 'Manager']), adminController.deleteTask);
 
 // --- TimeLogs ---
 router.get('/timelogs', verifyToken, timeLogController.getTimeLogs);
 router.post('/timelogs', verifyToken, timeLogController.createTimeLog);
 
 // --- Master Data (Admin) ---
-router.get('/clients', verifyToken, authorize(['Admin']), adminController.getClients);
-router.post('/clients', verifyToken, authorize(['Admin']), adminController.createClient);
-router.put('/clients/:id', verifyToken, authorize(['Admin']), adminController.updateClient);
-router.delete('/clients/:id', verifyToken, authorize(['Admin']), adminController.deleteClient);
+router.get('/clients', verifyToken, authorize(['Owner', 'Admin']), adminController.getClients);
+router.post('/clients', verifyToken, authorize(['Owner', 'Admin']), adminController.createClient);
+router.put('/clients/:id', verifyToken, authorize(['Owner', 'Admin']), adminController.updateClient);
+router.delete('/clients/:id', verifyToken, authorize(['Owner', 'Admin']), adminController.deleteClient);
 
-router.get('/projects', verifyToken, authorize(['Admin', 'Manager', 'HR', 'Employee']), ensureFeatureEnabled('project_management'), adminController.getProjects);
-router.post('/projects', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.createProject);
-router.put('/projects/:id', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.updateProject);
-router.delete('/projects/:id', verifyToken, authorize(['Admin']), ensureFeatureEnabled('project_management'), adminController.deleteProject);
+router.get('/projects', verifyToken, authorize(['Owner', 'Admin', 'Manager', 'HR', 'Employee', 'Accountant']), ensureFeatureEnabled('project_management'), adminController.getProjects);
+router.post('/projects', verifyToken, authorize(['Owner', 'Admin']), ensureFeatureEnabled('project_management'), adminController.createProject);
+router.put('/projects/:id', verifyToken, authorize(['Owner', 'Admin']), ensureFeatureEnabled('project_management'), adminController.updateProject);
+router.delete('/projects/:id', verifyToken, authorize(['Owner', 'Admin']), ensureFeatureEnabled('project_management'), adminController.deleteProject);
 
-router.get('/teams', verifyToken, authorize(['Admin', 'Manager', 'HR', 'Employee']), adminController.getTeams);
-router.post('/teams', verifyToken, authorize(['Admin']), adminController.createTeam);
-router.put('/teams/:id', verifyToken, authorize(['Admin']), adminController.updateTeam);
-router.delete('/teams/:id', verifyToken, authorize(['Admin']), adminController.deleteTeam);
+router.get('/teams', verifyToken, authorize(['Owner', 'Admin', 'Manager', 'HR', 'Employee', 'Accountant']), adminController.getTeams);
+router.post('/teams', verifyToken, authorize(['Owner', 'Admin']), adminController.createTeam);
+router.put('/teams/:id', verifyToken, authorize(['Owner', 'Admin']), adminController.updateTeam);
+router.delete('/teams/:id', verifyToken, authorize(['Owner', 'Admin']), adminController.deleteTeam);
 
-router.get('/jobs', verifyToken, authorize(['Admin']), adminController.getJobs);
-router.post('/jobs', verifyToken, authorize(['Admin']), adminController.createJob);
+router.get('/jobs', verifyToken, authorize(['Owner', 'Admin']), adminController.getJobs);
+router.post('/jobs', verifyToken, authorize(['Owner', 'Admin']), adminController.createJob);
 
 // --- Config ---
-router.get('/config/modules', verifyToken, authorize(['Admin']), adminController.getModules);
-router.put('/config/modules/:moduleName', verifyToken, authorize(['Admin']), adminController.updateModule);
+router.get('/config/modules', verifyToken, authorize(['Owner', 'Admin']), adminController.getModules);
+router.put('/config/modules/:moduleName', verifyToken, authorize(['Owner', 'Admin']), adminController.updateModule);
 
 // --- Leave Management ---
 router.post('/leaves/apply', verifyToken, ensureFeatureEnabled('leave_management'), leaveController.applyLeave);
@@ -187,13 +189,13 @@ router.get('/timesheets', verifyToken, ensureFeatureEnabled('timesheet'), timesh
 router.put('/timesheets/:id/status', verifyToken, authorize(['Admin', 'Manager']), ensureFeatureEnabled('timesheet'), timesheetController.updateTimesheetStatus);
 
 // --- Tenant Settings ---
-router.get('/tenant/settings', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.getSettings);
-router.put('/tenant/settings', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.updateSettings);
-router.get('/tenant/permissions', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.getPermissions);
-router.put('/tenant/permissions', verifyToken, authorize(['Admin', 'TenantAdmin']), tenantController.updatePermissions);
+router.get('/tenant/settings', verifyToken, authorize(['Admin', 'Owner']), tenantController.getSettings);
+router.put('/tenant/settings', verifyToken, authorize(['Admin', 'Owner']), tenantController.updateSettings);
+router.get('/tenant/permissions', verifyToken, authorize(['Admin', 'Owner']), tenantController.getPermissions);
+router.put('/tenant/permissions', verifyToken, authorize(['Admin', 'Owner']), tenantController.updatePermissions);
 
 // --- Reports ---
-router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'TenantAdmin', 'HR', 'Accountant']), ensureFeatureEnabled('reports'), reportController.getTimesheetReport);
+router.get('/reports/timesheet', verifyToken, authorize(['Admin', 'Owner', 'HR', 'Accountant']), ensureFeatureEnabled('reports'), reportController.getTimesheetReport);
 router.get('/reports/leave-balance/:userId', verifyToken, ensureFeatureEnabled('reports'), reportController.getLeaveBalance);
 
 module.exports = router;

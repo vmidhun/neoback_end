@@ -1,225 +1,235 @@
 [
   {
-    "_id": "superadmin",
+    "_id": "u_super_admin",
+    "tenantId": "common",
     "name": "Super Admin",
-    "email": "admin@neo.com",
+    "email": "super@neo.com",
     "password": "admin",
     "role": "SuperAdmin",
-    "designation": "System Administrator",
-    "hierarchyLevel": 0
+    "designation": "System Administrator"
   },
   {
-    "_id": "sam",
-    "__v": 0,
-    "avatarUrl": "/team/sam.jpeg",
-    "createdAt": "2025-12-23T19:04:25.651Z",
-    "designation": "UX Director",
-    "email": "sam@neointeraction.com",
-    "hierarchyLevel": 1,
-    "name": "Sam Thomas",
-    "password": "password",
-    "reportingManagerId": null,
-    "role": "Admin",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:25.651Z"
-  },
-  {
-    "_id": "midhun",
-    "__v": 0,
-    "avatarUrl": "/team/midhun.jpeg",
-    "createdAt": "2025-12-23T19:04:25.851Z",
-    "designation": "Project Lead",
+    "_id": "u_midhun",
+    "tenantId": "t_neo",
+    "name": "Midhun",
     "email": "midhun@neointeraction.com",
-    "hierarchyLevel": 2,
-    "name": "Midhun M",
     "password": "password",
-    "reportingManagerId": "sam",
-    "role": "Admin",
+    "role": "Owner",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:25.851Z"
-  },
-  {
-    "_id": "shameer",
-    "__v": 0,
-    "avatarUrl": "/team/shameer.jpeg",
-    "createdAt": "2025-12-23T19:04:26.051Z",
-    "designation": "UI Lead",
-    "email": "shameer@neointeraction.com",
-    "hierarchyLevel": 2,
-    "name": "Shameer M",
-    "password": "password",
-    "reportingManagerId": "sam",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:26.051Z"
-  },
-  {
-    "_id": "vanessa",
-    "__v": 0,
-    "avatarUrl": "/team/vanessa.jpeg",
-    "createdAt": "2025-12-23T19:04:26.251Z",
-    "designation": "Senior UX UI Designer",
-    "email": "vanessa@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Vanessa Lobo",
-    "password": "password",
-    "reportingManagerId": "sam",
-    "role": "Scrum Master",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-24T05:25:56.954Z",
-    "emergencyContacts": [],
-    "employmentDetails": {
-      "employmentStatus": "Active"
+    "designation": "Director",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/midhun.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/midhun.jpeg"
     }
   },
   {
-    "_id": "sindhu",
-    "__v": 0,
-    "avatarUrl": "/team/sindhu.jpeg",
-    "createdAt": "2025-12-23T19:04:26.451Z",
-    "designation": "HR Executive",
-    "email": "sindhu@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Sindhu K",
-    "password": "hr",
-    "reportingManagerId": "sam",
+    "_id": "u_sam",
+    "tenantId": "t_neo",
+    "name": "Sam",
+    "email": "sam@neointeraction.com",
+    "password": "password",
+    "role": "Manager",
+    "teamId": "team_alpha",
+    "designation": "Engineering Manager",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sam.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sam.jpeg"
+    }
+  },
+  {
+    "_id": "u_shameer",
+    "tenantId": "t_neo",
+    "name": "Shameer",
+    "email": "shameer@neointeraction.com",
+    "password": "password",
+    "role": "Manager",
+    "teamId": "team_beta",
+    "designation": "Product Manager",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/shameer.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/shameer.jpeg"
+    }
+  },
+  {
+    "_id": "u_sahla",
+    "tenantId": "t_neo",
+    "name": "Sahla",
+    "email": "sahla@neointeraction.com",
+    "password": "password",
     "role": "HR",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:26.451Z"
+    "designation": "HR Manager",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sahla.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sahla.jpeg"
+    }
   },
   {
-    "_id": "jishnu",
-    "__v": 0,
-    "avatarUrl": "/team/jishnu.jpeg",
-    "createdAt": "2025-12-23T19:04:26.651Z",
-    "designation": "UI Developer",
-    "email": "jishnu@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Jishnu Krishnan",
+    "_id": "u_aditya",
+    "tenantId": "t_neo",
+    "name": "Aditya",
+    "email": "aditya@neointeraction.com",
     "password": "password",
-    "reportingManagerId": "shameer",
     "role": "Employee",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:26.651Z"
-  },
-  {
-    "_id": "sahla",
-    "__v": 0,
-    "avatarUrl": "/team/sahla.jpeg",
-    "createdAt": "2025-12-23T19:04:26.851Z",
     "designation": "UX Designer",
-    "email": "sahla@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Sahla Feroc",
-    "password": "password",
-    "reportingManagerId": "vanessa",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:26.851Z"
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/aditya.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/aditya.jpeg"
+    }
   },
   {
-    "_id": "talha",
-    "__v": 0,
-    "avatarUrl": "/team/talha.jpeg",
-    "createdAt": "2025-12-23T19:04:27.051Z",
+    "_id": "u_allwyn",
+    "tenantId": "t_neo",
+    "name": "Allwyn",
+    "email": "allwyn@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_beta",
     "designation": "UI Developer",
-    "email": "talha@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Talha Shaikh",
-    "password": "password",
-    "reportingManagerId": "shameer",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:27.051Z"
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/allwyn.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/allwyn.jpeg"
+    }
   },
   {
-    "_id": "liya",
-    "__v": 0,
-    "avatarUrl": "/team/liya.jpeg",
-    "createdAt": "2025-12-23T19:04:27.251Z",
-    "designation": "Digital Marketing Executive",
-    "email": "liya@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Liya Theresa Siby",
-    "password": "password",
-    "reportingManagerId": "midhun",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:27.251Z"
-  },
-  {
-    "_id": "sangram",
-    "__v": 0,
-    "avatarUrl": "/team/sangram.jpeg",
-    "createdAt": "2025-12-23T19:04:27.451Z",
-    "designation": "UI Developer",
-    "email": "sangram@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Sangram Patil",
-    "password": "password",
-    "reportingManagerId": "shameer",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:27.451Z"
-  },
-  {
-    "_id": "veena",
-    "__v": 0,
-    "avatarUrl": "/team/veena.jpeg",
-    "createdAt": "2025-12-23T19:04:27.651Z",
-    "designation": "UX Designer",
-    "email": "veena@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Veena Varghese",
-    "password": "password",
-    "reportingManagerId": "vanessa",
-    "role": "Employee",
-    "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:27.651Z"
-  },
-  {
-    "_id": "ashutosh",
-    "__v": 0,
-    "avatarUrl": "/team/ashutosh.jpeg",
-    "createdAt": "2025-12-23T19:04:27.851Z",
-    "designation": "UX Designer",
+    "_id": "u_ashutosh",
+    "tenantId": "t_neo",
+    "name": "Ashutosh",
     "email": "ashutosh@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Ashutosh Shakya",
     "password": "password",
-    "reportingManagerId": "vanessa",
     "role": "Employee",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:27.851Z"
+    "designation": "Frontend Developer",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/ashutosh.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/ashutosh.jpeg"
+    }
   },
   {
-    "_id": "sakshi",
-    "__v": 0,
-    "avatarUrl": "/team/sakshi.jpeg",
-    "createdAt": "2025-12-23T19:04:28.051Z",
-    "designation": "UX Designer",
-    "email": "sakshi@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Sakshi Patil",
+    "_id": "u_jishnu",
+    "tenantId": "t_neo",
+    "name": "Jishnu",
+    "email": "jishnu@neointeraction.com",
     "password": "password",
-    "reportingManagerId": "vanessa",
+    "role": "Employee",
+    "teamId": "team_beta",
+    "designation": "Backend Developer",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/jishnu.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/jishnu.jpeg"
+    }
+  },
+  {
+    "_id": "u_liya",
+    "tenantId": "t_neo",
+    "name": "Liya",
+    "email": "liya@neointeraction.com",
+    "password": "password",
     "role": "Employee",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:28.051Z"
+    "designation": "Quality Analyst",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/liya.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/liya.jpeg"
+    }
   },
   {
-    "_id": "rishi",
-    "__v": 0,
-    "avatarUrl": "/team/rishi.jpeg",
-    "createdAt": "2025-12-23T19:04:28.253Z",
-    "designation": "Digital Marketing Executive",
+    "_id": "u_rishi",
+    "tenantId": "t_neo",
+    "name": "Rishi",
     "email": "rishi@neointeraction.com",
-    "hierarchyLevel": 3,
-    "name": "Rishi C",
     "password": "password",
-    "reportingManagerId": "midhun",
+    "role": "Employee",
+    "teamId": "team_beta",
+    "designation": "Visual Designer",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/rishi.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/rishi.jpeg"
+    }
+  },
+  {
+    "_id": "u_sakshi",
+    "tenantId": "t_neo",
+    "name": "Sakshi",
+    "email": "sakshi@neointeraction.com",
+    "password": "password",
     "role": "Employee",
     "teamId": "team_alpha",
-    "updatedAt": "2025-12-23T19:04:28.253Z"
+    "designation": "Content Strategist",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sakshi.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sakshi.jpeg"
+    }
+  },
+  {
+    "_id": "u_sangram",
+    "tenantId": "t_neo",
+    "name": "Sangram",
+    "email": "sangram@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_beta",
+    "designation": "Project Coordinator",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sangram.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sangram.jpeg"
+    }
+  },
+  {
+    "_id": "u_sindhu",
+    "tenantId": "t_neo",
+    "name": "Sindhu",
+    "email": "sindhu@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_alpha",
+    "designation": "Senior Developer",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sindhu.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/sindhu.jpeg"
+    }
+  },
+  {
+    "_id": "u_talha",
+    "tenantId": "t_neo",
+    "name": "Talha",
+    "email": "talha@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_beta",
+    "designation": "Marketing Lead",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/talha.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/talha.jpeg"
+    }
+  },
+  {
+    "_id": "u_vanessa",
+    "tenantId": "t_neo",
+    "name": "Vanessa",
+    "email": "vanessa@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_alpha",
+    "designation": "Business Analyst",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/vanessa.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/vanessa.jpeg"
+    }
+  },
+  {
+    "_id": "u_veena",
+    "tenantId": "t_neo",
+    "name": "Veena",
+    "email": "veena@neointeraction.com",
+    "password": "password",
+    "role": "Employee",
+    "teamId": "team_beta",
+    "designation": "Operations Executive",
+    "avatarUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/veena.jpeg",
+    "documents": {
+      "photoUrl": "https://vidrec-bkt-01.s3.ap-south-1.amazonaws.com/neon/tenant_1766717592744/team/veena.jpeg"
+    }
   }
 ]

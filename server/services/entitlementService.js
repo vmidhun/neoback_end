@@ -1,6 +1,7 @@
 
 const db = require('../models');
-const { TenantSubscription, PlanFeature } = db;
+
+const { TenantProductSubscription, ProductFeature } = db;
 
 // In-memory cache for entitlements with short TTL
 // Structure: { tenantId: { entitlements: {...}, expiresAt: timestamp } }
@@ -15,31 +16,47 @@ exports.getTenantEntitlements = async (tenantId) => {
     }
 
     // 2. Fetch from DB
-    // Get active subscription
-    const subscription = await TenantSubscription.findOne({ 
-        tenant: tenantId, 
-        status: { $in: ['TRIAL', 'ACTIVE'] } // Only active/trial get features? or allow PAST_DUE with limits?
+    // Get all active subscriptions
+    const subscriptions = await TenantProductSubscription.find({
+        tenantId: tenantId,
+        status: { $in: ['TRIAL', 'ACTIVE'] } 
     });
 
-    // Default entitlements (everything disabled/0)
+    // Default entitlements (base capabilities if any default)
     let entitlements = {
-        project_management: { type: 'BOOLEAN', value: false },
-        leave_management: { type: 'BOOLEAN', value: false },
-        timesheet: { type: 'BOOLEAN', value: false },
-        team_standup: { type: 'BOOLEAN', value: false },
-        reports: { type: 'BOOLEAN', value: false },
-        max_employees: { type: 'NUMERIC', value: 0 },
-        max_projects: { type: 'NUMERIC', value: 0 }
+        // We can initialize with false/0, or rely on products to set them.
+        // For safety, nice to have known keys present.
     };
 
-    if (subscription && subscription.plan) {
-        const features = await PlanFeature.find({ plan: subscription.plan });
+    // Collect Product IDs
+    const productIds = subscriptions.map(sub => sub.productId);
+
+    if (productIds.length > 0) {
+        const features = await ProductFeature.find({ product: { $in: productIds } });
         
         features.forEach(f => {
+            // Logic: enable if ANY product has it enabled (OR logic for boolean).
+            // For Numeric: Max or Sum? Let's take MAX for now, or just overwrite.
+            // Assuming simplified non-conflicting keys model as per spec.
+
             if (f.type === 'BOOLEAN') {
-                entitlements[f.key] = { type: 'BOOLEAN', value: f.boolValue, planAllowed: f.boolValue };
+                // If already exists and is true, keep it true. Else set to current val.
+                const current = entitlements[f.key];
+                const newVal = f.boolValue;
+                entitlements[f.key] = {
+                    type: 'BOOLEAN',
+                    value: (current && current.value) || newVal,
+                    planAllowed: true
+                };
             } else if (f.type === 'NUMERIC') {
-                entitlements[f.key] = { type: 'NUMERIC', value: f.numericValue, planAllowed: true }; // Numeric usually limits, true means 'feature present'
+                const current = entitlements[f.key];
+                const newVal = f.numericValue;
+                // Take the maximum limit found across products
+                entitlements[f.key] = {
+                    type: 'NUMERIC',
+                    value: Math.max((current ? current.value : 0), newVal),
+                    planAllowed: true
+                };
             }
         });
     }

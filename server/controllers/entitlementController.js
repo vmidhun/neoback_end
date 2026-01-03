@@ -1,7 +1,7 @@
 
 const entitlementService = require('../services/entitlementService');
 const db = require('../models');
-const { TenantSubscription } = db;
+const { TenantProductSubscription } = db;
 
 exports.getMyEntitlements = async (req, res) => {
     try {
@@ -11,10 +11,11 @@ exports.getMyEntitlements = async (req, res) => {
         const entitlements = await entitlementService.getTenantEntitlements(tenantId);
         
         // Also fetch basic plan info separately to display "Current Plan: Starter"
-        const sub = await TenantSubscription.findOne({ tenant: tenantId }).populate('plan', 'name code billingType');
+        // We assume 'p_base' or similar represents the main plan.
+        const sub = await TenantProductSubscription.findOne({ tenantId: tenantId, productId: 'p_base' }).populate('productId', 'name code billingType');
         
         res.json({
-            plan: sub ? sub.plan : null,
+            plan: sub ? sub.productId : null,
             features: entitlements
         });
     } catch (err) {

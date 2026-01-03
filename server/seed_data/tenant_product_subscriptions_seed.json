@@ -1,0 +1,42 @@
+[
+  {
+    "tenantId": "t_neo",
+    "productId": "p_base",
+    "isActive": true,
+    "status": "ACTIVE",
+    "autoRenew": true,
+    "startDate": "2024-01-01T00:00:00.000Z"
+  },
+  {
+      "tenantId": "t_neo",
+      "productId": "p_projects",
+      "isActive": true,
+      "status": "ACTIVE",
+      "autoRenew": true,
+      "startDate": "2024-01-01T00:00:00.000Z"
+  },
+  {
+      "tenantId": "t_neo",
+      "productId": "p_leave",
+      "isActive": true,
+      "status": "ACTIVE",
+      "autoRenew": true,
+      "startDate": "2024-01-01T00:00:00.000Z"
+  },
+  {
+      "tenantId": "t_neo",
+      "productId": "p_timesheets",
+      "isActive": true,
+      "status": "ACTIVE",
+      "autoRenew": true,
+      "startDate": "2024-01-01T00:00:00.000Z"
+  },
+  {
+      "tenantId": "t_neo",
+      "productId": "p_standup",
+      "isActive": true,
+      "status": "ACTIVE",
+      "autoRenew": true,
+      "startDate": "2024-01-01T00:00:00.000Z"
+  }
+]

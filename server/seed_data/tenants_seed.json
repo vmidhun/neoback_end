@@ -1,0 +1,11 @@
+[
+  {
+    "_id": "t_neo",
+    "name": "Neo Interaction",
+    "domain": "neointeraction.com",
+    "status": "Active",
+    "createdAt": "2025-12-26T17:45:27.133Z",
+    "updatedAt": "2025-12-26T17:45:27.133Z",
+    "subscriptionPlan": "Paid"
+  }
+]

@@ -15,6 +15,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
+    let tenantName = "NEON";
+    if (user.tenantId && user.tenantId !== 'common') {
+      const tenant = await db.Tenant.findById(user.tenantId);
+      if (tenant) tenantName = tenant.name;
+    }
+
     res.status(200).json({
       token: user._id, 
       user: {
@@ -22,7 +28,8 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatarUrl: user.avatarUrl
+        avatarUrl: user.avatarUrl,
+        tenantName: tenantName
       }
     });
   } catch (err) {
@@ -30,17 +37,24 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getMe = (req, res) => {
+exports.getMe = async (req, res) => {
   const user = req.user;
   if (!user) return res.status(401).json({ error: "Not authenticated" });
   
+  let tenantName = "NEON";
+  if (user.tenantId && user.tenantId !== 'common') {
+    const tenant = await db.Tenant.findById(user.tenantId);
+    if (tenant) tenantName = tenant.name;
+  }
+
   res.status(200).json({
     id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
     avatarUrl: user.avatarUrl,
-    teamId: user.teamId
+    teamId: user.teamId,
+    tenantName: tenantName
   });
 };
 
