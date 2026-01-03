@@ -4,7 +4,7 @@ This document outlines the API endpoints for the NEO Timesheet & Project Managem
 
 ## Base URL
 
-`http://localhost:3001/api` (or your deployed backend URL)
+`http://localhost:3003/api` (or your deployed backend URL)
 
 ## Authentication
 
